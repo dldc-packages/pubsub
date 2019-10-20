@@ -18,5 +18,20 @@
   "devDependencies": {
     "tsdx": "^0.10.5",
     "tslib": "^1.10.0"
-  }
+  },
+  "description": "A simple pub/sub written in Typescript",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/etienne-dldc/suub.git"
+  },
+  "keywords": [
+    "subscribe",
+    "ts",
+    "pubsub",
+    "typescript"
+  ],
+  "bugs": {
+    "url": "https://github.com/etienne-dldc/suub/issues"
+  },
+  "homepage": "https://github.com/etienne-dldc/suub#readme"
 }
