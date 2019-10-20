@@ -22,6 +22,55 @@ mySub.call(45); // num: 45
 unsub();
 ```
 
+## Reference / SubId
+
+You have two ways to `subscribe` / `unsubscribe`.
+
+- Using the reference of the listener
+
+```ts
+const mySub = () => {
+  /*...*/
+};
+subscription.subscribe(mySub);
+// later
+subscription.unsubscribe(mySub);
+```
+
+- Using a SubId
+
+```ts
+subscription.subscribe('mySubId', () => {
+  /*...*/
+});
+// later
+subscription.unsubscribe('mySubId');
+```
+
+In both case the `subscribe` return a function that will unsubscribe:
+
+```ts
+const unsub = subscription.subscribe(/*...*/);
+// later
+unsub();
+```
+
+## A few details
+
+#### Listeners are called in the order thay are subscribed.
+
+#### If you re-subscribe the same listener it will not re-do a subscription but instead move the subscription to the end.
+
+In other word, calling `subscribe` on an already subscribed listener is the same as calling `unsubscribe` the `subscribe` on that listener except you get the same `unsubscribe` reference back.
+
+#### If you call `unsubscribe` in a listener it will have effect immediatly.
+
+If the listener you unsubscribe is supposed to run after the current listener, it will not be called.
+
+#### If you `subscribe` in a listener it will not be called immediatly.
+
+But it will be in the next `call`.
+
 ## Examples
 
 Take a look at the [Examples folder](https://github.com/etienne-dldc/suub/tree/master/examples).
