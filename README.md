@@ -1,4 +1,8 @@
-# Suub
+<p align="center">
+  <img src="https://github.com/etienne-dldc/suub/blob/master/design/logo.png" width="597" alt="suub logo">
+</p>
+
+# 📫 Suub
 
 > A simple pub/sub written in Typescript
 
