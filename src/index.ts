@@ -62,21 +62,22 @@ export const Subscription = {
         throw new Error('Expected the listener to be a function.');
       }
 
-      if (subId !== null) {
-        // if subId and listener is the same...
-        const alreadySubscribed = listeners.find(l => l.subId === subId);
-        if (alreadySubscribed && alreadySubscribed.listener === listener) {
-          // just return the unsub
-          return alreadySubscribed.unsubscribe;
-        }
-        // otherwise unsub the previous one
-        unsubscribe(subId);
-      }
+      const alreadySubscribed =
+        subId === null ? listeners.find(l => l.listener === listener) : listeners.find(l => l.subId === subId);
 
-      if (subId === null) {
-        // if the listener is already sub, just return the unsub
-        const alreadySubscribed = listeners.find(l => l.listener === listener);
-        if (alreadySubscribed) {
+      if (alreadySubscribed) {
+        const shouldResubscribe = subId !== null ? alreadySubscribed.listener !== listener : false;
+        if (shouldResubscribe) {
+          if (subId !== null) {
+            unsubscribe(subId);
+          }
+          // then keep going with the subscription
+        } else {
+          // move the subscription to the end
+          const subIndex = listeners.indexOf(alreadySubscribed);
+          listeners.splice(subIndex, 1);
+          listeners.push(alreadySubscribed);
+          // return the unsub
           return alreadySubscribed.unsubscribe;
         }
       }
