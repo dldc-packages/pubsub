@@ -205,10 +205,10 @@ test('on', () => {
 
 test('calling unsubscribeAll inside a cb should stop all the other', () => {
   const sub = Subscription.create<number>();
-  const cb1 = jest.fn();
-  const cb2 = jest.fn(() => {
+  const cb1 = jest.fn(() => {
     sub.unsubscribeAll();
   });
+  const cb2 = jest.fn();
   const cb3 = jest.fn();
   sub.subscribe(cb1);
   sub.subscribe(cb2);
