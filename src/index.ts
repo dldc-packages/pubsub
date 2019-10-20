@@ -29,7 +29,7 @@ interface SubscriptionItem<T> {
 }
 
 export const Subscription = {
-  create<T>(options: Options = {}): Subscription<T> {
+  create<T = void>(options: Options = {}): Subscription<T> {
     const { onFirstSubscription, onLastUnsubscribe } = options;
 
     let listeners: Array<SubscriptionItem<T>> = [];
