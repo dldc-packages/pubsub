@@ -8,11 +8,13 @@ export interface SubscribeMethod<T> {
 }
 
 export type IsSubscribedMethod<T> = (subId: string | SubscriptionCallback<T>) => boolean;
-export type UnsubscribeMethod<T> = (subId?: string | SubscriptionCallback<T>) => void;
+export type UnsubscribeMethod<T> = (subId: string | SubscriptionCallback<T>) => void;
+export type UnsubscribeAllMethod = () => void;
 
 export interface Subscription<T> {
   subscribe: SubscribeMethod<T>;
   unsubscribe: UnsubscribeMethod<T>;
+  unsubscribeAll: UnsubscribeAllMethod;
   isSubscribed: IsSubscribedMethod<T>;
   call: [T] extends [void] ? (() => void) : ((newValue: T) => void);
 }
@@ -45,6 +47,7 @@ export const Subscription = {
         }
       }
       if (safe <= 0) {
+        /* istanbul ignore next */
         throw new Error('Hit safe in while loop');
       }
     }
@@ -60,7 +63,22 @@ export const Subscription = {
       }
 
       if (subId !== null) {
+        // if subId and listener is the same...
+        const alreadySubscribed = listeners.find(l => l.subId === subId);
+        if (alreadySubscribed && alreadySubscribed.listener === listener) {
+          // just return the unsub
+          return alreadySubscribed.unsubscribe;
+        }
+        // otherwise unsub the previous one
         unsubscribe(subId);
+      }
+
+      if (subId === null) {
+        // if the listener is already sub, just return the unsub
+        const alreadySubscribed = listeners.find(l => l.listener === listener);
+        if (alreadySubscribed) {
+          return alreadySubscribed.unsubscribe;
+        }
       }
 
       let isSubscribed = true;
@@ -91,34 +109,25 @@ export const Subscription = {
       return unsubscribeCurrent;
     }
 
-    function unsubscribe(subId?: string | SubscriptionCallback<T>): void {
-      if (subId === undefined) {
-        while (listeners.length > 0) {
-          listeners[0].unsubscribe();
-        }
-        while (callQueue.length > 0) {
-          callQueue[0].unsubscribe();
-        }
-        return;
+    function unsubscribeAll(): void {
+      while (listeners.length > 0) {
+        listeners[0].unsubscribe();
       }
+      // Note: we don't need to clear the call queue because the unsubscribe() will take care of it
+      return;
+    }
+
+    function unsubscribe(subId: string | SubscriptionCallback<T>): void {
       if (typeof subId === 'string') {
         const foundInListeners = listeners.find(i => i.subId === subId);
         if (foundInListeners) {
           foundInListeners.unsubscribe();
-        }
-        const foundInQueue = callQueue.find(i => i.subId === subId);
-        if (foundInQueue) {
-          foundInQueue.unsubscribe();
         }
         return;
       }
       const foundInListeners = listeners.find(i => i.listener === subId);
       if (foundInListeners) {
         foundInListeners.unsubscribe();
-      }
-      const foundInQueue = callQueue.find(i => i.listener === subId);
-      if (foundInQueue) {
-        foundInQueue.unsubscribe();
       }
     }
 
@@ -134,6 +143,7 @@ export const Subscription = {
     return {
       subscribe,
       unsubscribe,
+      unsubscribeAll,
       isSubscribed,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       call: call as any,

@@ -28,7 +28,7 @@ Take a look at the [Examples folder](https://github.com/etienne-dldc/suub/tree/m
 
 ## API
 
-### `Subscription.create<T>(options: Options): Subscription<T>`
+### Subscription.create<T>(options: Options): Subscription<T>
 
 > Create a new Subscription
 
@@ -41,7 +41,7 @@ Take a look at the [Examples folder](https://github.com/etienne-dldc/suub/tree/m
 
 > A subscription object
 
-### `Subscription<T>.subscribe([subId, ] listener): Unsubscribe`
+### Subscription<T>.subscribe([subId, ] listener): Unsubscribe
 
 > Add a subscriber
 
@@ -49,7 +49,7 @@ Take a look at the [Examples folder](https://github.com/etienne-dldc/suub/tree/m
 - `listener`: The function that will be called when you `call`, this function receive a value as parameter (of type `T`)
 - return `Unsubscribe`: returns a function that will unsubscribe the listener.
 
-### `Subscription<T>.call(value: T)`
+### Subscription<T>.call(value: T)
 
 > Call all listeners in the same order they were subscribed
 
@@ -57,13 +57,17 @@ Take a look at the [Examples folder](https://github.com/etienne-dldc/suub/tree/m
 
 **Note**: If `T` is `void` this function does not take any arguments.
 
-### `Subscription<T>.unsubscribe(listener)`
+### Subscription<T>.unsubscribeAll()
+
+> Unsubscribe all listeners
+
+### Subscription<T>.unsubscribe(listener)
 
 > Unsubscribe a listener either by reference or by id
 
 - `listener`: Either an id (`string`) or a reference to a listener
 
-### `Subscription<T>.isSubscribed(listener): boolean`
+### Subscription<T>.isSubscribed(listener): boolean
 
 > Test wether a listener id subscribed or not
 
