@@ -7,7 +7,7 @@
     "dist"
   ],
   "main": "dist/index.js",
-  "module": "dist/sub.esm.js",
+  "module": "dist/suub.esm.js",
   "typings": "dist/index.d.ts",
   "scripts": {
     "build": "tsdx build",
