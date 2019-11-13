@@ -57,11 +57,11 @@ unsub();
 
 ## A few details
 
-#### Listeners are called in the order thay are subscribed.
+#### Listeners are called in the order they are subscribed.
 
 #### If you re-subscribe the same listener it will not re-do a subscription but instead move the subscription to the end.
 
-In other word, calling `subscribe` on an already subscribed listener is the same as calling `unsubscribe` the `subscribe` on that listener except you get the same `unsubscribe` reference back.
+In other word, calling `subscribe` on an already subscribed listener is the same as calling `unsubscribe` then `subscribe` on that listener except you get the same `unsubscribe` reference back.
 
 #### If you call `unsubscribe` in a listener it will have effect immediatly.
 
@@ -86,11 +86,11 @@ Take a look at the [Examples folder](https://github.com/etienne-dldc/suub/tree/m
 
 **Note**: by default the `T` type is `void` meaning the `Subscription` has no data.
 
-### Subscription<T>
+### Subscription&lt;T&gt;
 
 > A subscription object
 
-### Subscription<T>.subscribe([subId, ] listener): Unsubscribe
+### Subscription&lt;T&gt;.subscribe([subId, ] listener): Unsubscribe
 
 > Add a subscriber
 
@@ -98,7 +98,7 @@ Take a look at the [Examples folder](https://github.com/etienne-dldc/suub/tree/m
 - `listener`: The function that will be called when you `call`, this function receive a value as parameter (of type `T`)
 - return `Unsubscribe`: returns a function that will unsubscribe the listener.
 
-### Subscription<T>.call(value: T)
+### Subscription&lt;T&gt;.call(value: T)
 
 > Call all listeners in the same order they were subscribed
 
@@ -106,17 +106,17 @@ Take a look at the [Examples folder](https://github.com/etienne-dldc/suub/tree/m
 
 **Note**: If `T` is `void` this function does not take any arguments.
 
-### Subscription<T>.unsubscribeAll()
+### Subscription&lt;T&gt;.unsubscribeAll()
 
 > Unsubscribe all listeners
 
-### Subscription<T>.unsubscribe(listener)
+### Subscription&lt;T&gt;.unsubscribe(listener)
 
 > Unsubscribe a listener either by reference or by id
 
 - `listener`: Either an id (`string`) or a reference to a listener
 
-### Subscription<T>.isSubscribed(listener): boolean
+### Subscription&lt;T&gt;.isSubscribed(listener): boolean
 
 > Test wether a listener id subscribed or not
 
