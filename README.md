@@ -96,7 +96,8 @@ Take a look at the [Examples folder](https://github.com/etienne-dldc/suub/tree/m
 
 - `subId` (optional): Associate an id with the listener to be able to `unsubscribe` by this same id.
 - `listener`: The function that will be called when you `call`, this function receive a value as parameter (of type `T`)
-- return `Unsubscribe`: returns a function that will unsubscribe the listener.
+
+- **return** `Unsubscribe`: returns a function that will unsubscribe the listener.
 
 ### Subscription&lt;T&gt;.call(value: T)
 
