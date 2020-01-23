@@ -13,7 +13,7 @@
     "build": "tsdx build",
     "start": "tsdx watch",
     "test": "tsdx test",
-    "pub": "np",
+    "pub": "yarn build && np",
     "examples": "ts-node ./scripts/run-examples.ts"
   },
   "dependencies": {},
