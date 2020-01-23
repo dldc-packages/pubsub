@@ -2,19 +2,19 @@
   <img src="https://github.com/etienne-dldc/suub/blob/master/design/logo.png" width="597" alt="suub logo">
 </p>
 
-# 📫 Suub [![Build Status](https://travis-ci.org/etienne-dldc/suub.svg?branch=master)](https://travis-ci.org/etienne-dldc/suub) [![](https://badgen.net/bundlephobia/minzip/chemin)](https://bundlephobia.com/result?p=chemin)
+# 📫 Suub [![Build Status](https://travis-ci.org/etienne-dldc/suub.svg?branch=master)](https://travis-ci.org/etienne-dldc/suub) [![](https://badgen.net/bundlephobia/minzip/suub)](https://bundlephobia.com/result?p=suub)
 
 > A simple pub/sub written in Typescript
 
 ## Gist
 
 ```ts
-import { Subscription } from '../dist';
+import { Subscription } from "../dist";
 
 const mySub = Subscription.create<number>();
 
 const unsub = mySub.subscribe(num => {
-  console.log('num: ' + name);
+  console.log("num: " + name);
 });
 
 mySub.call(45); // num: 45
@@ -40,11 +40,11 @@ subscription.unsubscribe(mySub);
 - Using a SubId
 
 ```ts
-subscription.subscribe('mySubId', () => {
+subscription.subscribe("mySubId", () => {
   /*...*/
 });
 // later
-subscription.unsubscribe('mySubId');
+subscription.unsubscribe("mySubId");
 ```
 
 In both case the `subscribe` return a function that will unsubscribe:
