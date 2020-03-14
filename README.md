@@ -2,7 +2,7 @@
   <img src="https://github.com/etienne-dldc/suub/blob/master/design/logo.png" width="597" alt="suub logo">
 </p>
 
-# 📫 Suub [![Build Status](https://travis-ci.org/etienne-dldc/suub.svg?branch=master)](https://travis-ci.org/etienne-dldc/suub) [![](https://badgen.net/bundlephobia/minzip/suub)](https://bundlephobia.com/result?p=suub)
+# 📫 Suub [![Build Status](https://travis-ci.org/etienne-dldc/suub.svg?branch=master)](https://travis-ci.org/etienne-dldc/suub) [![](https://badgen.net/bundlephobia/minzip/suub)](https://bundlephobia.com/result?p=suub) [![codecov](https://codecov.io/gh/etienne-dldc/suub/branch/master/graph/badge.svg)](https://codecov.io/gh/etienne-dldc/suub)
 
 > A simple pub/sub written in Typescript
 
