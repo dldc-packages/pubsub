@@ -9,12 +9,12 @@
 ## Gist
 
 ```ts
-import { Subscription } from "../dist";
+import { Subscription } from '../dist';
 
 const mySub = Subscription.create<number>();
 
 const unsub = mySub.subscribe(num => {
-  console.log("num: " + name);
+  console.log('num: ' + name);
 });
 
 mySub.call(45); // num: 45
@@ -40,11 +40,11 @@ subscription.unsubscribe(mySub);
 - Using a SubId
 
 ```ts
-subscription.subscribe("mySubId", () => {
+subscription.subscribe('mySubId', () => {
   /*...*/
 });
 // later
-subscription.unsubscribe("mySubId");
+subscription.unsubscribe('mySubId');
 ```
 
 In both case the `subscribe` return a function that will unsubscribe:
@@ -61,7 +61,7 @@ unsub();
 
 #### If you re-subscribe the same listener it will not re-do a subscription but instead move the subscription to the end.
 
-In other word, calling `subscribe` on an already subscribed listener is the same as calling `unsubscribe` then `subscribe` on that listener except you get the same `unsubscribe` reference back.
+In other words, calling `subscribe` on an already subscribed listener is the same as calling `unsubscribe` then `subscribe` on that listener except you get the same `unsubscribe` reference back.
 
 #### If you call `unsubscribe` in a listener it will have effect immediatly.
 
@@ -70,6 +70,8 @@ If the listener you unsubscribe is supposed to run after the current listener, i
 #### If you `subscribe` in a listener it will not be called immediatly.
 
 But it will be in the next `call`.
+
+#### If you `call()` in a listener it will defer the call to after the current call is done.
 
 ## Examples
 
@@ -81,8 +83,10 @@ Take a look at the [Examples folder](https://github.com/etienne-dldc/suub/tree/m
 
 > Create a new Subscription
 
-- `options.onFirstSubscription?`: A function called when the subscriber count goes from 0 to 1
-- `options.onLastUnsubscribe?`: A function called when the subscriber count goes from 1 to 0
+- `options.onFirstSubscription?`: A function called when the listener count goes from 0 to 1
+- `options.onLastUnsubscribe?`: A function called when the listener count goes from 1 to 0
+- `options.maxListenerCount?`: The maximum number of listeners (default is `10000`)
+- `options.maxRecursiveCall?`: The maximum number of recursive call (calling `call` in a listener) (default is `1000`)
 
 **Note**: by default the `T` type is `void` meaning the `Subscription` has no data.
 
@@ -92,7 +96,7 @@ Take a look at the [Examples folder](https://github.com/etienne-dldc/suub/tree/m
 
 ### Subscription&lt;T&gt;.subscribe([subId, ] listener): Unsubscribe
 
-> Add a subscriber
+> Add a listener
 
 - `subId` (optional): Associate an id with the listener to be able to `unsubscribe` by this same id.
 - `listener`: The function that will be called when you `call`, this function receive a value as parameter (of type `T`)
