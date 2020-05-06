@@ -339,3 +339,23 @@ test('Calling call conditinally in a listener should defer the call', () => {
   expect(cb1).toHaveNthReturnedWith(2, 2);
   expect(cb2).toHaveNthReturnedWith(2, 3);
 });
+
+test('Sub.listenersCount() returns the number of listeners', () => {
+  const sub = Subscription.create<number>();
+  expect(sub.listenersCount()).toBe(0);
+  const unsub1 = sub.subscribe(() => {});
+  expect(sub.listenersCount()).toBe(1);
+  unsub1();
+  expect(sub.listenersCount()).toBe(0);
+  const unsub2 = sub.subscribe(() => {});
+  sub.subscribe(() => {});
+  expect(sub.listenersCount()).toBe(2);
+  unsub2();
+  expect(sub.listenersCount()).toBe(1);
+  sub.subscribe(() => {});
+  sub.subscribe(() => {});
+  sub.subscribe(() => {});
+  expect(sub.listenersCount()).toBe(4);
+  sub.unsubscribeAll();
+  expect(sub.listenersCount()).toBe(0);
+});

@@ -126,3 +126,7 @@ Take a look at the [Examples folder](https://github.com/etienne-dldc/suub/tree/m
 > Test wether a listener id subscribed or not
 
 - `listener`: Either an id (`string`) or a reference to a listener
+
+### Subscription&lt;T&gt;.listenersCount(): number
+
+> Return the number of listeners

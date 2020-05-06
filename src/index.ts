@@ -23,6 +23,7 @@ export interface Subscription<T> {
   unsubscribeAll: UnsubscribeAllMethod;
   isSubscribed: IsSubscribedMethod<T>;
   call: [T] extends [void] ? () => void : (newValue: T) => void;
+  listenersCount: () => number;
 }
 
 interface Options {
@@ -194,13 +195,18 @@ export const Subscription = {
       return foundInListeners !== undefined;
     }
 
+    function listenersCount(): number {
+      return listeners.length;
+    }
+
     return {
       subscribe,
       unsubscribe,
       unsubscribeAll,
       isSubscribed,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      call: call as any
+      call: call as any,
+      listenersCount
     };
   }
 };
