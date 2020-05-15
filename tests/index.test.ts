@@ -12,6 +12,18 @@ test('Basic subscription', () => {
   expect(cb1).toHaveBeenCalledWith(42);
 });
 
+test('Basic void subscription', () => {
+  const sub = Subscription.createVoid();
+  const cb1 = jest.fn();
+  const unsub1 = sub.subscribe(cb1);
+  sub.call();
+  unsub1();
+  sub.call();
+  expect(sub.isSubscribed(cb1)).toBe(false);
+  expect(cb1).toHaveBeenCalledTimes(1);
+  expect(cb1).toHaveBeenCalledWith(undefined);
+});
+
 test('Id subscription', () => {
   const sub = Subscription.create<number>();
   const cb1 = jest.fn();
