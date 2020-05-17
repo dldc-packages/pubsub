@@ -5,7 +5,7 @@ const mySub = Subscription.create<number>({
     console.log('Firts sub !');
   },
   onLastUnsubscribe: () => {
-    console.log('No listener left !');
+    console.log('No subscriptions left !');
   }
 });
 
@@ -15,4 +15,4 @@ const unsub = mySub.subscribe(num => {
 
 mySub.call(45);
 
-unsub(); // No listener left !
+unsub(); // No subscriptions left !

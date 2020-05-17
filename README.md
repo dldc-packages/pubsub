@@ -9,35 +9,56 @@
 ## Gist
 
 ```ts
-import { Subscription } from '../dist';
+import { Subscription } from 'suub';
 
-const mySub = Subscription.create<number>();
+const mySub = Subscription<number>();
 
 const unsub = mySub.subscribe(num => {
   console.log('num: ' + name);
 });
 
-mySub.call(45); // num: 45
+mySub.emit(45); // num: 45
 
 unsub();
 ```
 
-## Reference / SubId
+## Guide
+
+### Creating a Subscription
+
+To create a `Subscription` you need to import the `Subscription` function and call it.
+
+```ts
+import { Subscription } from 'suub';
+
+const subscription = Subscription();
+```
+
+If you use TypeScript, you need to pass a type parameter to the `Subscription` function to define the type of the value associated with the subscription. By default this type is `void` (no value).
+
+```ts
+import { Subscription } from 'suub';
+
+const numSubscription = Subscription<number>();
+```
+
+### Subscribe and Unsubscribe
 
 You have two ways to `subscribe` / `unsubscribe`.
 
-- Using the reference of the listener
+- Using the reference of the callback function
 
 ```ts
-const mySub = () => {
+const callback = () => {
   /*...*/
 };
-subscription.subscribe(mySub);
+
+subscription.subscribe(callback);
 // later
-subscription.unsubscribe(mySub);
+subscription.unsubscribe(callback);
 ```
 
-- Using a SubId
+- Using a SubId (a string)
 
 ```ts
 subscription.subscribe('mySubId', () => {
@@ -55,23 +76,115 @@ const unsub = subscription.subscribe(/*...*/);
 unsub();
 ```
 
-## A few details
+### Emitting value
 
-#### Listeners are called in the order they are subscribed.
+To emit a value and trigger all subscribed `callback` you need to call the `emit` method.
 
-#### If you re-subscribe the same listener it will not re-do a subscription but instead move the subscription to the end.
+```ts
+subscription.emit(42);
+// you can also emit with no value
+subscription.emit();
+```
 
-In other words, calling `subscribe` on an already subscribed listener is the same as calling `unsubscribe` then `subscribe` on that listener except you get the same `unsubscribe` reference back.
+### OnUnsubscribe
 
-#### If you call `unsubscribe` in a listener it will have effect immediatly.
+The `subscribe` method accept a optional function after the callback, this function will be called when this callback you are subscribing is unsubscribed.
 
-If the listener you unsubscribe is supposed to run after the current listener, it will not be called.
+```ts
+subscription.subscribe(
+  () => {
+    /* ... */
+  },
+  () => {
+    console.log('Unsubscribed !');
+  }
+);
 
-#### If you `subscribe` in a listener it will not be called immediatly.
+// or with a subId
+subscription.subscribe(
+  'mySub',
+  () => {
+    /* ... */
+  },
+  () => {
+    console.log('Unsubscribed !');
+  }
+);
+```
 
-But it will be in the next `call`.
+### Unsubscribing all callback
 
-#### If you `call()` in a listener it will defer the call to after the current call is done.
+You can call `unsubscribeAll` method on a subscription to remove all callback. This will also trigger the `onUnsubscribe` if any.
+
+```ts
+subscription.unsubscribeAll();
+```
+
+### `Subscription` options
+
+The `Subscription` function accept an option object as parameter (all properties are optional):
+
+```ts
+const sub = Subscription({
+  onFirstSubscription: () => {},
+  onLastUnsubscribe: () => {},
+  maxSubscriptionCount: 10000,
+  maxRecursiveCall: 1000
+});
+```
+
+#### `onFirstSubscription`
+
+> A function called when the number of subscribers goes from `0` to `1`
+
+#### `onLastUnsubscribe`
+
+> A function called when the number of subscribers goes from `1` to `0`
+
+#### `maxSubscriptionCount`
+
+> A number to limit the maximum number of simultaneous subscriptions (default is `10000`). This limit exist to detect infinit subscription loop.
+
+#### `maxRecursiveCall`
+
+> A number to limit the maximum recursive call of `emit` (defaumt is `1000`). This limit exist to detect infinite loop where you `emit` in a `callback`.
+
+### Testing if a callbacl / subId is subscribed
+
+The `isSubscribed` let you test whether a callbacl / subId is currently subscribed
+
+```ts
+subscription.isSubscribed(myCallback); // <- boolean
+subscription.isSubscribed('my-sub-id'); // <- boolean
+```
+
+### Reading the number of active Subscriptions
+
+You can call the `size` method to get the number of subscriptions.
+
+```ts
+subscription.size();
+```
+
+## Some precisions
+
+#### Callback are called in the order they are subscribed.
+
+#### If you re-subscribe the same callback it will not re-do a subscription but instead move the subscription to the end.
+
+In other words, calling `subscribe` on an already subscribed callback or subId will not make the callback called twice. But it will move the callback at the end of the subscription list.
+
+#### If you call `unsubscribe` in a callback it will have effect immediatly.
+
+If the callback you unsubscribe is supposed to run after the current callback, it will not be called.
+
+#### If you `subscribe` in a callback it will not be called immediatly.
+
+But it will be in the next `emit`.
+
+#### If you `emit()` in a callback it will defer the call to after the current emit is done.
+
+#### If you `subscribe` / `unsubscribe` / `emit` in an `onUnsubscribed` it will behave the same as if it was in the callback itself
 
 ## Examples
 
@@ -79,54 +192,69 @@ Take a look at the [Examples folder](https://github.com/etienne-dldc/suub/tree/m
 
 ## API
 
-### Subscription.create<T>(options: Options): Subscription<T>
+```ts
+export type Unsubscribe = () => void;
+export type OnUnsubscribed = () => void;
+export type SubscriptionCallback<T> = (value: T) => void;
+export type VoidSubscriptionCallback = () => void;
+export type UnsubscribeAllMethod = () => void;
 
-> Create a new Subscription
+export interface SubscribeMethod<T> {
+  (callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed): Unsubscribe;
+  (subId: string, callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed): Unsubscribe;
+}
 
-- `options.onFirstSubscription?`: A function called when the listener count goes from 0 to 1
-- `options.onLastUnsubscribe?`: A function called when the listener count goes from 1 to 0
-- `options.maxListenerCount?`: The maximum number of listeners (default is `10000`)
-- `options.maxRecursiveCall?`: The maximum number of recursive call (calling `call` in a listener) (default is `1000`)
+export interface VoidSubscribeMethod {
+  (callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed): Unsubscribe;
+  (subId: string, callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed): Unsubscribe;
+}
 
-**Note**: by default the `T` type is `void` meaning the `Subscription` has no data.
+export interface IsSubscribedMethod<T> {
+  (subId: string): boolean;
+  (callback: SubscriptionCallback<T>): boolean;
+}
 
-### Subscription&lt;T&gt;
+export interface UnsubscribeMethod<T> {
+  (subId: string): void;
+  (callback: SubscriptionCallback<T>): void;
+}
 
-> A subscription object
+export interface VoidIsSubscribedMethod {
+  (subId: string): boolean;
+  (callback: VoidSubscriptionCallback): boolean;
+}
 
-### Subscription&lt;T&gt;.subscribe([subId, ] listener): Unsubscribe
+export interface VoidUnsubscribeMethod {
+  (subId: string): void;
+  (callback: VoidSubscriptionCallback): void;
+}
 
-> Add a listener
+export interface Subscription<T> {
+  subscribe: SubscribeMethod<T>;
+  unsubscribe: UnsubscribeMethod<T>;
+  unsubscribeAll: UnsubscribeAllMethod;
+  isSubscribed: IsSubscribedMethod<T>;
+  size: () => number;
+  emit: (newValue: T) => void;
+}
 
-- `subId` (optional): Associate an id with the listener to be able to `unsubscribe` by this same id.
-- `listener`: The function that will be called when you `call`, this function receive a value as parameter (of type `T`)
+export interface VoidSubscription {
+  subscribe: VoidSubscribeMethod;
+  unsubscribe: VoidUnsubscribeMethod;
+  unsubscribeAll: UnsubscribeAllMethod;
+  isSubscribed: VoidIsSubscribedMethod;
+  size: () => number;
+  emit: () => void;
+}
 
-- **return** `Unsubscribe`: returns a function that will unsubscribe the listener.
+export interface SubscriptionOptions {
+  onFirstSubscription?: () => void;
+  onLastUnsubscribe?: () => void;
+  maxSubscriptionCount?: number;
+  maxRecursiveCall?: number;
+}
 
-### Subscription&lt;T&gt;.call(value: T)
-
-> Call all listeners in the same order they were subscribed
-
-- `value`: The value (of type `T`) that will be passed to the listeners
-
-**Note**: If `T` is `void` this function does not take any arguments.
-
-### Subscription&lt;T&gt;.unsubscribeAll()
-
-> Unsubscribe all listeners
-
-### Subscription&lt;T&gt;.unsubscribe(listener)
-
-> Unsubscribe a listener either by reference or by id
-
-- `listener`: Either an id (`string`) or a reference to a listener
-
-### Subscription&lt;T&gt;.isSubscribed(listener): boolean
-
-> Test wether a listener id subscribed or not
-
-- `listener`: Either an id (`string`) or a reference to a listener
-
-### Subscription&lt;T&gt;.listenersCount(): number
-
-> Return the number of listeners
+export function Subscription<T = void>(
+  options: SubscriptionOptions = {}
+): [T] extends [void] ? VoidSubscription : Subscription<T>;
+```
