@@ -14,7 +14,7 @@ import { Subscription } from 'suub';
 const mySub = Subscription<number>();
 
 const unsub = mySub.subscribe(num => {
-  console.log('num: ' + name);
+  console.log('num: ' + num);
 });
 
 mySub.emit(45); // num: 45
