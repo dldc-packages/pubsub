@@ -149,9 +149,9 @@ const sub = Subscription({
 
 > A number to limit the maximum recursive call of `emit` (defaumt is `1000`). This limit exist to detect infinite loop where you `emit` in a `callback`.
 
-### Testing if a callbacl / subId is subscribed
+### Testing if a callback / subId is subscribed
 
-The `isSubscribed` let you test whether a callbacl / subId is currently subscribed
+The `isSubscribed` let you test whether or not a callback / subId is currently subscribed
 
 ```ts
 subscription.isSubscribed(myCallback); // <- boolean
