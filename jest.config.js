@@ -1,7 +1,7 @@
+/* eslint-disable no-undef */
+/** @type {import('@jest/types').Config.InitialOptions} */
 module.exports = {
-  globals: {
-    'ts-jest': {
-      packageJson: 'package.json'
-    }
-  }
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}'],
 };

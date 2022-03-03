@@ -74,10 +74,10 @@ export function Subscription<T = void>(
     onFirstSubscription,
     onLastUnsubscribe,
     maxRecursiveCall = 1000,
-    maxSubscriptionCount = 10000
+    maxSubscriptionCount = 10000,
   } = options;
 
-  let subscriptions: Array<SubscriptionItem<T>> = [];
+  const subscriptions: Array<SubscriptionItem<T>> = [];
   let nextSubscriptions: Array<SubscriptionItem<T>> = [];
   const emitQueue: Array<{ value: T }> = [];
   let isEmitting = false;
@@ -164,7 +164,7 @@ export function Subscription<T = void>(
       subId,
       callback: callback,
       unsubscribe: unsubscribeCurrent,
-      onUnsubscribe
+      onUnsubscribe,
     });
     if (subscriptions.length === 1 && onFirstSubscription) {
       onFirstSubscription();
@@ -175,7 +175,7 @@ export function Subscription<T = void>(
         return;
       }
       isSubscribed = false;
-      const index = subscriptions.findIndex(i => i.callback === callback);
+      const index = subscriptions.findIndex((i) => i.callback === callback);
 
       // isSubscribed is true but the callback is not in the list
       // this should not happend but if it does we ignore the unsub
@@ -188,7 +188,7 @@ export function Subscription<T = void>(
       }
       const item = subscriptions[index];
       subscriptions.splice(index, 1);
-      const queueIndex = nextSubscriptions.findIndex(i => i.callback === callback);
+      const queueIndex = nextSubscriptions.findIndex((i) => i.callback === callback);
       if (queueIndex >= 0) {
         nextSubscriptions.splice(queueIndex, 1);
       }
@@ -208,8 +208,8 @@ export function Subscription<T = void>(
     callback?: SubscriptionCallback<any>
   ): SubscriptionItem<T> | undefined {
     return subId === null
-      ? subscriptions.find(l => l.callback === callback)
-      : subscriptions.find(l => l.subId === subId);
+      ? subscriptions.find((l) => l.callback === callback)
+      : subscriptions.find((l) => l.subId === subId);
   }
 
   function unsubscribeAll(): void {
@@ -248,7 +248,7 @@ export function Subscription<T = void>(
     unsubscribeAll,
     isSubscribed,
     emit,
-    size
+    size,
   };
 
   return sub as any;

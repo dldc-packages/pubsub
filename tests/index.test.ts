@@ -1,4 +1,4 @@
-import { Subscription } from '../src';
+import { Subscription } from '../src/mod';
 
 test('Basic subscription', () => {
   const sub = Subscription<number>();
@@ -253,7 +253,7 @@ test('onFirstSubscription and onLastUnsubscribe', () => {
   const onLast = jest.fn();
   const sub = Subscription<number>({
     onFirstSubscription: onFirst,
-    onLastUnsubscribe: onLast
+    onLastUnsubscribe: onLast,
   });
   const cb1 = jest.fn();
   const cb2 = jest.fn();
@@ -305,7 +305,7 @@ test('Calling call in a callback should throw because of inifnite loop', () => {
 
 test('maxRecursiveCall', () => {
   const sub = Subscription<number>({ maxRecursiveCall: 10 });
-  const cb1 = jest.fn(val => {
+  const cb1 = jest.fn((val) => {
     if (val > 0) {
       sub.emit(val - 1);
     }
@@ -329,7 +329,7 @@ test('maxSubscriptionCount limit the number of subscriptions', () => {
 test('Calling call conditinally in a callback should defer the call', () => {
   const sub = Subscription<number>();
   let count = 0;
-  const cb1 = jest.fn(val => {
+  const cb1 = jest.fn((val) => {
     if (val === 0) {
       sub.emit(1);
     }
