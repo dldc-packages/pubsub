@@ -11,7 +11,7 @@
 ```ts
 import { Subscription } from 'suub';
 
-const mySub = Subscription<number>();
+const mySub = Subscription.create<number>();
 
 const unsub = mySub.subscribe((num) => {
   console.log('num: ' + num);
@@ -26,20 +26,28 @@ unsub();
 
 ### Creating a Subscription
 
-To create a `Subscription` you need to import the `Subscription` function and call it.
+To create a `Subscription` you need to import the `Subscription.create` function and call it.
 
 ```ts
 import { Subscription } from 'suub';
 
-const subscription = Subscription();
+const subscription = Subscription.create();
 ```
 
-If you use TypeScript, you need to pass a type parameter to the `Subscription` function to define the type of the value associated with the subscription. By default this type is `void` (no value).
+If you use TypeScript, you need to pass a type parameter to the `Subscription.create` function to define the type of the value associated with the subscription.
 
 ```ts
 import { Subscription } from 'suub';
 
-const numSubscription = Subscription<number>();
+const numSubscription = Subscription.create<number>();
+```
+
+If you don't want your subscription not to emit any value, you can use the `Subscription.createVoid` function.
+
+```ts
+import { Subscription } from 'suub';
+
+const voidSubscription = Subscription.createVoid();
 ```
 
 ### Subscribe and Unsubscribe
@@ -122,12 +130,13 @@ subscription.unsubscribeAll();
 
 ### `Subscription` options
 
-The `Subscription` function accept an option object as parameter (all properties are optional):
+The `Subscription.create` (or `Subscription.createVoid`) function accept an option object as parameter (all properties are optional):
 
 ```ts
-const sub = Subscription({
+const sub = Subscription.create({
   onFirstSubscription: () => {},
   onLastUnsubscribe: () => {},
+  onDestroy: () => {},
   maxSubscriptionCount: 10000,
   maxRecursiveCall: 1000,
 });
@@ -140,6 +149,10 @@ const sub = Subscription({
 #### `onLastUnsubscribe`
 
 > A function called when the number of subscribers goes from `1` to `0`
+
+#### `onDestroy`
+
+> A function called when the `destroy` method is called. Note that during this call the `Subscription` is already destroyed and you can't call `emit` or `subscribe` anymore.
 
 #### `maxSubscriptionCount`
 
@@ -166,6 +179,22 @@ You can call the `size` method to get the number of subscriptions.
 subscription.size();
 ```
 
+### Destroying a Subscription
+
+You can call the `destroy` method to destroy a subscription. This will unsubscribe all callback and call the `onDestroy` option if any.
+
+```ts
+subscription.destroy();
+```
+
+Once destroyed, calling `emit` or `subscribe` will throw an error. You can still call the other methods but they will have no effect.
+
+You can check if a subscription is destroyed by calling the `isDestroyed` method.
+
+```ts
+subscription.isDestroyed(); // <- boolean
+```
+
 ## Some precisions
 
 #### Callback are called in the order they are subscribed.
@@ -185,6 +214,18 @@ But it will be in the next `emit`.
 #### If you `emit()` in a callback it will defer the call to after the current emit is done.
 
 #### If you `subscribe` / `unsubscribe` / `emit` in an `onUnsubscribed` it will behave the same as if it was in the callback itself
+
+#### Calling `destroy` will unsubscribe all callback and call the `onUnsubscribe` if any
+
+In these `onUnsubscribe` callback the subscription is considered destroyed so you can't call `emit` or `subscribe` anymore.
+
+#### Calling `destroy` on a destroyed subscription will have no effect
+
+This is a no-op, it will not call `onDestroy` again.
+
+#### The subscription is already considered destroyed when `onDestroy` is called
+
+This means that you can't call `emit` or `subscribe` in the `onDestroy` callback and that `isDestroyed` will return `true` in the `onDestroy` callback.
 
 ## Examples
 
@@ -229,32 +270,33 @@ export interface VoidUnsubscribeMethod {
   (callback: VoidSubscriptionCallback): void;
 }
 
-export interface Subscription<T> {
+export interface ISubscription<T> {
   subscribe: SubscribeMethod<T>;
   unsubscribe: UnsubscribeMethod<T>;
   unsubscribeAll: UnsubscribeAllMethod;
   isSubscribed: IsSubscribedMethod<T>;
   size: () => number;
   emit: (newValue: T) => void;
+  destroy: () => void;
+  isDestroyed: () => boolean;
 }
 
-export interface VoidSubscription {
+export interface IVoidSubscription {
   subscribe: VoidSubscribeMethod;
   unsubscribe: VoidUnsubscribeMethod;
   unsubscribeAll: UnsubscribeAllMethod;
   isSubscribed: VoidIsSubscribedMethod;
   size: () => number;
   emit: () => void;
+  destroy: () => void;
+  isDestroyed: () => boolean;
 }
 
-export interface SubscriptionOptions {
+export interface ISubscriptionOptions {
   onFirstSubscription?: () => void;
   onLastUnsubscribe?: () => void;
+  onDestroy?: () => void;
   maxSubscriptionCount?: number;
   maxRecursiveCall?: number;
 }
-
-export function Subscription<T = void>(
-  options: SubscriptionOptions = {}
-): [T] extends [void] ? VoidSubscription : Subscription<T>;
 ```

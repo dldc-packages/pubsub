@@ -34,30 +34,49 @@ export interface VoidUnsubscribeMethod {
   (callback: VoidSubscriptionCallback): void;
 }
 
-export interface Subscription<T> {
+export interface ISubscription<T> {
   subscribe: SubscribeMethod<T>;
   unsubscribe: UnsubscribeMethod<T>;
   unsubscribeAll: UnsubscribeAllMethod;
   isSubscribed: IsSubscribedMethod<T>;
   size: () => number;
   emit: (newValue: T) => void;
+  // unsubscribe all and forbid new subscriptions
+  destroy: () => void;
+  isDestroyed: () => boolean;
 }
+/**
+ * @deprecated use ISubscription instead
+ */
+export type Subscription<T> = ISubscription<T>;
 
-export interface VoidSubscription {
+export interface IVoidSubscription {
   subscribe: VoidSubscribeMethod;
   unsubscribe: VoidUnsubscribeMethod;
   unsubscribeAll: UnsubscribeAllMethod;
   isSubscribed: VoidIsSubscribedMethod;
   size: () => number;
   emit: () => void;
+  // unsubscribe all and forbid new subscriptions
+  destroy: () => void;
+  isDestroyed: () => boolean;
 }
+/**
+ * @deprecated use IVoidSubscription instead
+ */
+export type VoidSubscription = IVoidSubscription;
 
-export interface SubscriptionOptions {
+export interface ISubscriptionOptions {
   onFirstSubscription?: () => void;
   onLastUnsubscribe?: () => void;
+  onDestroy?: () => void;
   maxSubscriptionCount?: number;
   maxRecursiveCall?: number;
 }
+/**
+ * @deprecated use ISubscriptionOptions instead
+ */
+export type SubscriptionOptions = ISubscriptionOptions;
 
 // @internal
 interface SubscriptionItem<T> {
@@ -67,189 +86,220 @@ interface SubscriptionItem<T> {
   onUnsubscribe: OnUnsubscribed | undefined;
 }
 
-export function Subscription<T = void>(
-  options: SubscriptionOptions = {}
-): [T] extends [void] ? VoidSubscription : Subscription<T> {
-  const {
-    onFirstSubscription,
-    onLastUnsubscribe,
-    maxRecursiveCall = 1000,
-    maxSubscriptionCount = 10000,
-  } = options;
+export const Subscription = (() => {
+  return Object.assign(legacyCreate, { create, createVoid });
 
-  const subscriptions: Array<SubscriptionItem<T>> = [];
-  let nextSubscriptions: Array<SubscriptionItem<T>> = [];
-  const emitQueue: Array<{ value: T }> = [];
-  let isEmitting = false;
+  /**
+   * @deprecated use Subscription.create() or Subscription.createVoid() instead
+   */
+  function legacyCreate<T = void>(
+    options: ISubscriptionOptions = {}
+  ): [T] extends [void] ? IVoidSubscription : ISubscription<T> {
+    return create<T>(options) as any;
+  }
 
-  function emit(newValue: T): void {
-    emitQueue.push({ value: newValue });
-    if (isEmitting) {
-      return;
+  function createVoid(options: ISubscriptionOptions = {}): IVoidSubscription {
+    return create<void>(options);
+  }
+
+  function create<T>(options: ISubscriptionOptions = {}): ISubscription<T> {
+    const {
+      onFirstSubscription,
+      onLastUnsubscribe,
+      onDestroy,
+      maxRecursiveCall = 1000,
+      maxSubscriptionCount = 10000,
+    } = options;
+
+    const subscriptions: Array<SubscriptionItem<T>> = [];
+    let nextSubscriptions: Array<SubscriptionItem<T>> = [];
+    const emitQueue: Array<{ value: T }> = [];
+    let isEmitting = false;
+    let destroyed = false;
+
+    const sub: ISubscription<T> = {
+      subscribe,
+      unsubscribe,
+      unsubscribeAll,
+      isSubscribed,
+      emit,
+      size,
+      destroy,
+      isDestroyed,
+    };
+
+    return sub as any;
+
+    function isDestroyed() {
+      return destroyed;
     }
-    isEmitting = true;
-    let emitQueueSafe = maxRecursiveCall + 1; // add one because we don't count the first one
-    while (emitQueueSafe > 0 && emitQueue.length > 0) {
-      emitQueueSafe--;
-      const value = emitQueue.shift()!.value;
-      nextSubscriptions = [...subscriptions];
-      let safe = maxSubscriptionCount;
-      while (safe > 0 && nextSubscriptions.length > 0) {
-        safe--;
-        // cannot be undefined because length > 0
-        const item = nextSubscriptions.shift()!;
-        item.callback(value);
+
+    function destroy() {
+      if (destroyed) {
+        return;
       }
-      if (safe <= 0) {
+      destroyed = true;
+      unsubscribeAll();
+      if (onDestroy) {
+        onDestroy();
+      }
+    }
+
+    function emit(newValue: T): void {
+      if (destroyed) {
+        throw new Error('The subscription has been destroyed');
+      }
+      emitQueue.push({ value: newValue });
+      if (isEmitting) {
+        return;
+      }
+      isEmitting = true;
+      let emitQueueSafe = maxRecursiveCall + 1; // add one because we don't count the first one
+      while (emitQueueSafe > 0 && emitQueue.length > 0) {
+        emitQueueSafe--;
+        const value = emitQueue.shift()!.value;
+        nextSubscriptions = [...subscriptions];
+        let safe = maxSubscriptionCount;
+        while (safe > 0 && nextSubscriptions.length > 0) {
+          safe--;
+          // cannot be undefined because length > 0
+          const item = nextSubscriptions.shift()!;
+          item.callback(value);
+        }
+        if (safe <= 0) {
+          isEmitting = false;
+          throw new Error(
+            'The maxSubscriptionCount has been reached. ' +
+              'If this is expected you can use the maxSubscriptionCount option to raise the limit'
+          );
+        }
+      }
+      if (emitQueueSafe <= 0) {
         isEmitting = false;
         throw new Error(
-          'The maxSubscriptionCount has been reached. ' +
-            'If this is expected you can use the maxSubscriptionCount option to raise the limit'
+          'The maxRecursiveCall has been reached, did you emit() in a callback ? ' +
+            'If this is expected you can use the maxRecursiveCall option to raise the limit'
         );
       }
-    }
-    if (emitQueueSafe <= 0) {
       isEmitting = false;
-      throw new Error(
-        'The maxRecursiveCall has been reached, did you emit() in a callback ? ' +
-          'If this is expected you can use the maxRecursiveCall option to raise the limit'
-      );
-    }
-    isEmitting = false;
-  }
-
-  function subscribe(
-    callback: SubscriptionCallback<T>,
-    onUnsubscribe?: OnUnsubscribed
-  ): Unsubscribe;
-  function subscribe(
-    subId: string,
-    callback: SubscriptionCallback<T>,
-    onUnsubscribe?: OnUnsubscribed
-  ): Unsubscribe;
-  function subscribe(
-    arg1: string | SubscriptionCallback<T>,
-    arg2?: OnUnsubscribed | SubscriptionCallback<T>,
-    arg3?: OnUnsubscribed
-  ): Unsubscribe {
-    const subId = typeof arg1 === 'string' ? arg1 : null;
-    const callback: SubscriptionCallback<T> = typeof arg1 === 'string' ? (arg2 as any) : arg1;
-    const onUnsubscribe: OnUnsubscribed | undefined =
-      typeof arg1 === 'string' ? arg3 : (arg2 as any);
-
-    if (typeof callback !== 'function') {
-      throw new Error('Expected the callback to be a function.');
     }
 
-    const alreadySubscribed = findSubscription(subId, callback);
-
-    if (alreadySubscribed) {
-      if (subId !== null) {
-        // We have a subId
-        // We need to update callback and onUnsubscribe
-        alreadySubscribed.callback = callback;
+    function subscribe(
+      arg1: string | SubscriptionCallback<T>,
+      arg2?: OnUnsubscribed | SubscriptionCallback<T>,
+      arg3?: OnUnsubscribed
+    ): Unsubscribe {
+      if (destroyed) {
+        throw new Error('The subscription has been destroyed');
       }
-      alreadySubscribed.onUnsubscribe = onUnsubscribe;
-      // Now we move move the subscription to the end
-      const subIndex = subscriptions.indexOf(alreadySubscribed);
-      subscriptions.splice(subIndex, 1);
-      subscriptions.push(alreadySubscribed);
-      // return the unsub
-      return alreadySubscribed.unsubscribe;
+      const subId = typeof arg1 === 'string' ? arg1 : null;
+      const callback: SubscriptionCallback<T> = typeof arg1 === 'string' ? (arg2 as any) : arg1;
+      const onUnsubscribe: OnUnsubscribed | undefined =
+        typeof arg1 === 'string' ? arg3 : (arg2 as any);
+
+      if (typeof callback !== 'function') {
+        throw new Error('Expected the callback to be a function.');
+      }
+
+      const alreadySubscribed = findSubscription(subId, callback);
+
+      if (alreadySubscribed) {
+        if (subId !== null) {
+          // We have a subId
+          // We need to update callback and onUnsubscribe
+          alreadySubscribed.callback = callback;
+        }
+        alreadySubscribed.onUnsubscribe = onUnsubscribe;
+        // Now we move move the subscription to the end
+        const subIndex = subscriptions.indexOf(alreadySubscribed);
+        subscriptions.splice(subIndex, 1);
+        subscriptions.push(alreadySubscribed);
+        // return the unsub
+        return alreadySubscribed.unsubscribe;
+      }
+
+      // New subscription
+      let isSubscribed = true;
+      subscriptions.push({
+        subId,
+        callback: callback,
+        unsubscribe: unsubscribeCurrent,
+        onUnsubscribe,
+      });
+      if (subscriptions.length === 1 && onFirstSubscription) {
+        onFirstSubscription();
+      }
+
+      function unsubscribeCurrent(): void {
+        if (!isSubscribed) {
+          return;
+        }
+        isSubscribed = false;
+        const index = subscriptions.findIndex((i) => i.callback === callback);
+
+        // isSubscribed is true but the callback is not in the list
+        // this should not happend but if it does we ignore the unsub
+        /* istanbul ignore next */
+        if (index === -1) {
+          console.warn(
+            `Subscribe (isSubscribed === true) callback is not in the subscriptions list. Please report a bug.`
+          );
+          return;
+        }
+        const item = subscriptions[index];
+        subscriptions.splice(index, 1);
+        const queueIndex = nextSubscriptions.findIndex((i) => i.callback === callback);
+        if (queueIndex >= 0) {
+          nextSubscriptions.splice(queueIndex, 1);
+        }
+        if (item.onUnsubscribe) {
+          item.onUnsubscribe();
+        }
+        if (subscriptions.length === 0 && onLastUnsubscribe) {
+          onLastUnsubscribe();
+        }
+      }
+
+      return unsubscribeCurrent;
     }
 
-    // New subscription
-    let isSubscribed = true;
-    subscriptions.push({
-      subId,
-      callback: callback,
-      unsubscribe: unsubscribeCurrent,
-      onUnsubscribe,
-    });
-    if (subscriptions.length === 1 && onFirstSubscription) {
-      onFirstSubscription();
+    function findSubscription(
+      subId: string | null,
+      callback?: SubscriptionCallback<any>
+    ): SubscriptionItem<T> | undefined {
+      return subId === null
+        ? subscriptions.find((l) => l.callback === callback)
+        : subscriptions.find((l) => l.subId === subId);
     }
 
-    function unsubscribeCurrent(): void {
-      if (!isSubscribed) {
-        return;
+    function unsubscribeAll(): void {
+      while (subscriptions.length > 0) {
+        subscriptions[0].unsubscribe();
       }
-      isSubscribed = false;
-      const index = subscriptions.findIndex((i) => i.callback === callback);
+      // Note: we don't need to clear the emit queue because the unsubscribe() will take care of it
+      return;
+    }
 
-      // isSubscribed is true but the callback is not in the list
-      // this should not happend but if it does we ignore the unsub
-      /* istanbul ignore next */
-      if (index === -1) {
-        console.warn(
-          `Subscribe (isSubscribed === true) callback is not in the subscriptions list. Please report a bug.`
-        );
-        return;
-      }
-      const item = subscriptions[index];
-      subscriptions.splice(index, 1);
-      const queueIndex = nextSubscriptions.findIndex((i) => i.callback === callback);
-      if (queueIndex >= 0) {
-        nextSubscriptions.splice(queueIndex, 1);
-      }
-      if (item.onUnsubscribe) {
-        item.onUnsubscribe();
-      }
-      if (subscriptions.length === 0 && onLastUnsubscribe) {
-        onLastUnsubscribe();
+    function unsubscribe(subId: string): void;
+    function unsubscribe(callback: SubscriptionCallback<T>): void;
+    function unsubscribe(arg1: string | SubscriptionCallback<T>): void {
+      const [subId, callback] = typeof arg1 === 'string' ? [arg1, undefined] : [null, arg1];
+      const subscription = findSubscription(subId, callback);
+      if (subscription) {
+        subscription.unsubscribe();
       }
     }
 
-    return unsubscribeCurrent;
-  }
-
-  function findSubscription(
-    subId: string | null,
-    callback?: SubscriptionCallback<any>
-  ): SubscriptionItem<T> | undefined {
-    return subId === null
-      ? subscriptions.find((l) => l.callback === callback)
-      : subscriptions.find((l) => l.subId === subId);
-  }
-
-  function unsubscribeAll(): void {
-    while (subscriptions.length > 0) {
-      subscriptions[0].unsubscribe();
+    function isSubscribed(subId: string): boolean;
+    function isSubscribed(callback: SubscriptionCallback<T>): boolean;
+    function isSubscribed(arg1: string | SubscriptionCallback<T>): boolean {
+      const [subId, callback] = typeof arg1 === 'string' ? [arg1, undefined] : [null, arg1];
+      const subscription = findSubscription(subId, callback);
+      return subscription !== undefined;
     }
-    // Note: we don't need to clear the emit queue because the unsubscribe() will take care of it
-    return;
-  }
 
-  function unsubscribe(subId: string): void;
-  function unsubscribe(callback: SubscriptionCallback<T>): void;
-  function unsubscribe(arg1: string | SubscriptionCallback<T>): void {
-    const [subId, callback] = typeof arg1 === 'string' ? [arg1, undefined] : [null, arg1];
-    const subscription = findSubscription(subId, callback);
-    if (subscription) {
-      subscription.unsubscribe();
+    function size(): number {
+      return subscriptions.length;
     }
   }
-
-  function isSubscribed(subId: string): boolean;
-  function isSubscribed(callback: SubscriptionCallback<T>): boolean;
-  function isSubscribed(arg1: string | SubscriptionCallback<T>): boolean {
-    const [subId, callback] = typeof arg1 === 'string' ? [arg1, undefined] : [null, arg1];
-    const subscription = findSubscription(subId, callback);
-    return subscription !== undefined;
-  }
-
-  function size(): number {
-    return subscriptions.length;
-  }
-
-  const sub: Subscription<T> = {
-    subscribe,
-    unsubscribe,
-    unsubscribeAll,
-    isSubscribed,
-    emit,
-    size,
-  };
-
-  return sub as any;
-}
+})();
