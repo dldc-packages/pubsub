@@ -1,3 +1,5 @@
+import { Erreur } from 'erreur';
+
 export type Unsubscribe = () => void;
 export type OnUnsubscribed = () => void;
 export type SubscriptionCallback<T> = (value: T) => void;
@@ -147,7 +149,7 @@ export const Subscription = (() => {
 
     function emit(newValue: T): void {
       if (destroyed) {
-        throw new Error('The subscription has been destroyed');
+        throw SuubErreur.SubscriptionDestroyed.create();
       }
       emitQueue.push({ value: newValue });
       if (isEmitting) {
@@ -168,18 +170,12 @@ export const Subscription = (() => {
         }
         if (safe <= 0) {
           isEmitting = false;
-          throw new Error(
-            'The maxSubscriptionCount has been reached. ' +
-              'If this is expected you can use the maxSubscriptionCount option to raise the limit'
-          );
+          throw SuubErreur.MaxSubscriptionCountReached.create();
         }
       }
       if (emitQueueSafe <= 0) {
         isEmitting = false;
-        throw new Error(
-          'The maxRecursiveCall has been reached, did you emit() in a callback ? ' +
-            'If this is expected you can use the maxRecursiveCall option to raise the limit'
-        );
+        throw SuubErreur.MaxRecursiveCallReached.create();
       }
       isEmitting = false;
     }
@@ -190,7 +186,7 @@ export const Subscription = (() => {
       arg3?: OnUnsubscribed
     ): Unsubscribe {
       if (destroyed) {
-        throw new Error('The subscription has been destroyed');
+        throw SuubErreur.SubscriptionDestroyed.create();
       }
       const subId = typeof arg1 === 'string' ? arg1 : null;
       const callback: SubscriptionCallback<T> = typeof arg1 === 'string' ? (arg2 as any) : arg1;
@@ -198,7 +194,7 @@ export const Subscription = (() => {
         typeof arg1 === 'string' ? arg3 : (arg2 as any);
 
       if (typeof callback !== 'function') {
-        throw new Error('Expected the callback to be a function.');
+        throw SuubErreur.InvalidCallback.create();
       }
 
       const alreadySubscribed = findSubscription(subId, callback);
@@ -303,3 +299,24 @@ export const Subscription = (() => {
     }
   }
 })();
+
+export const SuubErreur = {
+  SubscriptionDestroyed: Erreur.declare<null>(
+    'SubscriptionDestroyed',
+    () => `The subscription has been destroyed`
+  ).withTransform(() => null),
+  MaxSubscriptionCountReached: Erreur.declare<null>(
+    'MaxSubscriptionCountReached',
+    () =>
+      `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`
+  ).withTransform(() => null),
+  MaxRecursiveCallReached: Erreur.declare<null>(
+    'MaxRecursiveCallReached',
+    () =>
+      `The maxRecursiveCall has been reached, did you emit() in a callback ? If this is expected you can use the maxRecursiveCall option to raise the limit`
+  ).withTransform(() => null),
+  InvalidCallback: Erreur.declare<null>(
+    'InvalidCallback',
+    () => `The callback is not a function`
+  ).withTransform(() => null),
+};

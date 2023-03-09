@@ -60,5 +60,8 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
+  },
+  "dependencies": {
+    "erreur": "^2.0.0"
   }
 }
