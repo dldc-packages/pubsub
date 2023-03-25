@@ -158,11 +158,10 @@ export const Subscription = (() => {
           throw SuubErreur.MaxSubscriptionCountReached.create();
         }
       }
+      isEmitting = false;
       if (emitQueueSafe <= 0) {
-        isEmitting = false;
         throw SuubErreur.maxRecursiveEmitReached.create(maxRecursiveEmit);
       }
-      isEmitting = false;
     }
 
     function subscribe(callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed): Unsubscribe {
