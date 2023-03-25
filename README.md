@@ -69,14 +69,14 @@ subscription.unsubscribe(callback);
 - Using a SubId (a string)
 
 ```ts
-subscription.subscribe('mySubId', () => {
+subscription.subscribeById('mySubId', () => {
   /*...*/
 });
 // later
-subscription.unsubscribe('mySubId');
+subscription.unsubscribeById('mySubId');
 ```
 
-In both case the `subscribe` return a function that will unsubscribe:
+In both case the `subscribe[ById]` return a function that will unsubscribe:
 
 ```ts
 const unsub = subscription.subscribe(/*...*/);
@@ -90,13 +90,13 @@ To emit a value and trigger all subscribed `callback` you need to call the `emit
 
 ```ts
 subscription.emit(42);
-// you can also emit with no value
+// for void subscription you don't need to pass any value
 subscription.emit();
 ```
 
 ### OnUnsubscribe
 
-The `subscribe` method accept a optional function after the callback, this function will be called when this callback you are subscribing is unsubscribed.
+The `subscribe[ById]` methods accept a optional function after the callback, this function will be called when this callback you are subscribing is unsubscribed.
 
 ```ts
 subscription.subscribe(
@@ -109,7 +109,7 @@ subscription.subscribe(
 );
 
 // or with a subId
-subscription.subscribe(
+subscription.subscribeById(
   'mySub',
   () => {
     /* ... */
@@ -120,7 +120,7 @@ subscription.subscribe(
 );
 ```
 
-### Unsubscribing all callback
+### Unsubscribing all subscriptions
 
 You can call `unsubscribeAll` method on a subscription to remove all callback. This will also trigger the `onUnsubscribe` if any.
 
@@ -130,7 +130,7 @@ subscription.unsubscribeAll();
 
 ### `Subscription` options
 
-The `Subscription.create` (or `Subscription.createVoid`) function accept an option object as parameter (all properties are optional):
+The `Subscription.create` (or `Subscription.createVoid`) functions accept an option object as parameter (all properties are optional):
 
 ```ts
 const sub = Subscription.create({
@@ -138,7 +138,7 @@ const sub = Subscription.create({
   onLastUnsubscribe: () => {},
   onDestroy: () => {},
   maxSubscriptionCount: 10000,
-  maxRecursiveCall: 1000,
+  maxRecursiveEmit: 1000,
 });
 ```
 
@@ -158,17 +158,17 @@ const sub = Subscription.create({
 
 > A number to limit the maximum number of simultaneous subscriptions (default is `10000`). This limit exist to detect infinit subscription loop.
 
-#### `maxRecursiveCall`
+#### `maxRecursiveEmit`
 
 > A number to limit the maximum recursive call of `emit` (defaumt is `1000`). This limit exist to detect infinite loop where you `emit` in a `callback`.
 
 ### Testing if a callback / subId is subscribed
 
-The `isSubscribed` let you test whether or not a callback / subId is currently subscribed
+The `isSubscribed[ById]` methods let you test whether or not a callback / subId is currently subscribed
 
 ```ts
 subscription.isSubscribed(myCallback); // <- boolean
-subscription.isSubscribed('my-sub-id'); // <- boolean
+subscription.isSubscribedById('my-sub-id'); // <- boolean
 ```
 
 ### Reading the number of active Subscriptions
@@ -187,7 +187,7 @@ You can call the `destroy` method to destroy a subscription. This will unsubscri
 subscription.destroy();
 ```
 
-Once destroyed, calling `emit` or `subscribe` will throw an error. You can still call the other methods but they will have no effect.
+Once destroyed, calling `emit` or `subscribe[ById]` will throw an error. You can still call the other methods but they will have no effect.
 
 You can check if a subscription is destroyed by calling the `isDestroyed` method.
 
@@ -199,9 +199,10 @@ subscription.isDestroyed(); // <- boolean
 
 #### Callback are called in the order they are subscribed.
 
-#### If you re-subscribe the same callback it will not re-do a subscription but instead move the subscription to the end.
+#### If you re-subscribe the same callback or id it will not re-do a subscription but instead move the subscription to the end.
 
 In other words, calling `subscribe` on an already subscribed callback or subId will not make the callback called twice. But it will move the callback at the end of the subscription list.
+In the case of a subId, the callback will be replaced by the new one.
 
 #### If you call `unsubscribe` in a callback it will have effect immediatly.
 
@@ -297,6 +298,6 @@ export interface ISubscriptionOptions {
   onLastUnsubscribe?: () => void;
   onDestroy?: () => void;
   maxSubscriptionCount?: number;
-  maxRecursiveCall?: number;
+  maxRecursiveEmit?: number;
 }
 ```

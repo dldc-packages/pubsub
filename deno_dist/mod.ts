@@ -6,41 +6,35 @@ export type SubscriptionCallback<T> = (value: T) => void;
 export type VoidSubscriptionCallback = () => void;
 export type UnsubscribeAllMethod = () => void;
 
-export interface SubscribeMethod<T> {
-  (callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed): Unsubscribe;
-  (subId: string, callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed): Unsubscribe;
-}
+export type SubscribeMethod<T> = (callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
+export type SubscribeByIdMethod<T> = (subId: string, callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
 
-export interface VoidSubscribeMethod {
-  (callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed): Unsubscribe;
-  (subId: string, callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed): Unsubscribe;
-}
+export type VoidSubscribeMethod = (callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
+export type VoidSubscribeByIdMethod = (subId: string, callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
 
-export interface IsSubscribedMethod<T> {
-  (subId: string): boolean;
-  (callback: SubscriptionCallback<T>): boolean;
-}
+export type VoidWatchMethod = (callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
+export type VoidWatchByIdMethod = (subId: string, callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
 
-export interface UnsubscribeMethod<T> {
-  (subId: string): void;
-  (callback: SubscriptionCallback<T>): void;
-}
+export type IsSubscribedMethod<T> = (callback: SubscriptionCallback<T>) => boolean;
+export type IsSubscribedByIdMethod = (subId: string) => boolean;
 
-export interface VoidIsSubscribedMethod {
-  (subId: string): boolean;
-  (callback: VoidSubscriptionCallback): boolean;
-}
+export type UnsubscribeMethod<T> = (callback: SubscriptionCallback<T>) => void;
+export type UnsubscribeByIdMethod = (subId: string) => void;
 
-export interface VoidUnsubscribeMethod {
-  (subId: string): void;
-  (callback: VoidSubscriptionCallback): void;
-}
+export type VoidIsSubscribedMethod = (callback: VoidSubscriptionCallback) => boolean;
+export type VoidIsSubscribedByIdMethod = (subId: string) => boolean;
+
+export type VoidUnsubscribeMethod = (callback: VoidSubscriptionCallback) => void;
+export type VoidUnsubscribeByIdMethod = (subId: string) => void;
 
 export interface ISubscription<T> {
   subscribe: SubscribeMethod<T>;
+  subscribeById: SubscribeByIdMethod<T>;
   unsubscribe: UnsubscribeMethod<T>;
-  unsubscribeAll: UnsubscribeAllMethod;
+  unsubscribeById: UnsubscribeByIdMethod;
   isSubscribed: IsSubscribedMethod<T>;
+  isSubscribedById: IsSubscribedByIdMethod;
+  unsubscribeAll: UnsubscribeAllMethod;
   size: () => number;
   emit: (newValue: T) => void;
   // unsubscribe all and forbid new subscriptions
@@ -54,9 +48,12 @@ export type Subscription<T> = ISubscription<T>;
 
 export interface IVoidSubscription {
   subscribe: VoidSubscribeMethod;
+  subscribeById: VoidSubscribeByIdMethod;
   unsubscribe: VoidUnsubscribeMethod;
-  unsubscribeAll: UnsubscribeAllMethod;
+  unsubscribeById: VoidUnsubscribeByIdMethod;
   isSubscribed: VoidIsSubscribedMethod;
+  isSubscribedById: VoidIsSubscribedByIdMethod;
+  unsubscribeAll: UnsubscribeAllMethod;
   size: () => number;
   emit: () => void;
   // unsubscribe all and forbid new subscriptions
@@ -73,7 +70,7 @@ export interface ISubscriptionOptions {
   onLastUnsubscribe?: () => void;
   onDestroy?: () => void;
   maxSubscriptionCount?: number;
-  maxRecursiveCall?: number;
+  maxRecursiveEmit?: number;
 }
 /**
  * @deprecated use ISubscriptionOptions instead
@@ -89,29 +86,14 @@ interface SubscriptionItem<T> {
 }
 
 export const Subscription = (() => {
-  return Object.assign(legacyCreate, { create, createVoid });
-
-  /**
-   * @deprecated use Subscription.create() or Subscription.createVoid() instead
-   */
-  function legacyCreate<T = void>(
-    options: ISubscriptionOptions = {}
-  ): [T] extends [void] ? IVoidSubscription : ISubscription<T> {
-    return create<T>(options) as any;
-  }
+  return { create, createVoid };
 
   function createVoid(options: ISubscriptionOptions = {}): IVoidSubscription {
     return create<void>(options);
   }
 
   function create<T>(options: ISubscriptionOptions = {}): ISubscription<T> {
-    const {
-      onFirstSubscription,
-      onLastUnsubscribe,
-      onDestroy,
-      maxRecursiveCall = 1000,
-      maxSubscriptionCount = 10000,
-    } = options;
+    const { onFirstSubscription, onLastUnsubscribe, onDestroy, maxRecursiveEmit = 1000, maxSubscriptionCount = 10000 } = options;
 
     const subscriptions: Array<SubscriptionItem<T>> = [];
     let nextSubscriptions: Array<SubscriptionItem<T>> = [];
@@ -121,9 +103,12 @@ export const Subscription = (() => {
 
     const sub: ISubscription<T> = {
       subscribe,
+      subscribeById,
       unsubscribe,
-      unsubscribeAll,
+      unsubscribeById,
       isSubscribed,
+      isSubscribedById,
+      unsubscribeAll,
       emit,
       size,
       destroy,
@@ -156,7 +141,7 @@ export const Subscription = (() => {
         return;
       }
       isEmitting = true;
-      let emitQueueSafe = maxRecursiveCall + 1; // add one because we don't count the first one
+      let emitQueueSafe = maxRecursiveEmit + 1; // add one because we don't count the first one
       while (emitQueueSafe > 0 && emitQueue.length > 0) {
         emitQueueSafe--;
         const value = emitQueue.shift()!.value;
@@ -175,23 +160,27 @@ export const Subscription = (() => {
       }
       if (emitQueueSafe <= 0) {
         isEmitting = false;
-        throw SuubErreur.MaxRecursiveCallReached.create();
+        throw SuubErreur.maxRecursiveEmitReached.create(maxRecursiveEmit);
       }
       isEmitting = false;
     }
 
-    function subscribe(
-      arg1: string | SubscriptionCallback<T>,
-      arg2?: OnUnsubscribed | SubscriptionCallback<T>,
-      arg3?: OnUnsubscribed
+    function subscribe(callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed): Unsubscribe {
+      return subscribeInternal(callback, null, onUnsubscribe);
+    }
+
+    function subscribeById(subId: string, callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed): Unsubscribe {
+      return subscribeInternal(callback, subId, onUnsubscribe);
+    }
+
+    function subscribeInternal(
+      callback: SubscriptionCallback<T>,
+      subId: string | null,
+      onUnsubscribe: OnUnsubscribed | undefined
     ): Unsubscribe {
       if (destroyed) {
         throw SuubErreur.SubscriptionDestroyed.create();
       }
-      const subId = typeof arg1 === 'string' ? arg1 : null;
-      const callback: SubscriptionCallback<T> = typeof arg1 === 'string' ? (arg2 as any) : arg1;
-      const onUnsubscribe: OnUnsubscribed | undefined =
-        typeof arg1 === 'string' ? arg3 : (arg2 as any);
 
       if (typeof callback !== 'function') {
         throw SuubErreur.InvalidCallback.create();
@@ -237,9 +226,7 @@ export const Subscription = (() => {
         // this should not happend but if it does we ignore the unsub
         /* istanbul ignore next */
         if (index === -1) {
-          console.warn(
-            `Subscribe (isSubscribed === true) callback is not in the subscriptions list. Please report a bug.`
-          );
+          console.warn(`Subscribe (isSubscribed === true) callback is not in the subscriptions list. Please report a bug.`);
           return;
         }
         const item = subscriptions[index];
@@ -259,13 +246,8 @@ export const Subscription = (() => {
       return unsubscribeCurrent;
     }
 
-    function findSubscription(
-      subId: string | null,
-      callback?: SubscriptionCallback<any>
-    ): SubscriptionItem<T> | undefined {
-      return subId === null
-        ? subscriptions.find((l) => l.callback === callback)
-        : subscriptions.find((l) => l.subId === subId);
+    function findSubscription(subId: string | null, callback?: SubscriptionCallback<any>): SubscriptionItem<T> | undefined {
+      return subId === null ? subscriptions.find((l) => l.callback === callback) : subscriptions.find((l) => l.subId === subId);
     }
 
     function unsubscribeAll(): void {
@@ -276,20 +258,30 @@ export const Subscription = (() => {
       return;
     }
 
-    function unsubscribe(subId: string): void;
-    function unsubscribe(callback: SubscriptionCallback<T>): void;
-    function unsubscribe(arg1: string | SubscriptionCallback<T>): void {
-      const [subId, callback] = typeof arg1 === 'string' ? [arg1, undefined] : [null, arg1];
+    function unsubscribe(callback: SubscriptionCallback<T>): void {
+      unsubscribeInternal(null, callback);
+    }
+
+    function unsubscribeById(subId: string): void {
+      unsubscribeInternal(subId);
+    }
+
+    function unsubscribeInternal(subId: string | null, callback?: SubscriptionCallback<T>): void {
       const subscription = findSubscription(subId, callback);
       if (subscription) {
         subscription.unsubscribe();
       }
     }
 
-    function isSubscribed(subId: string): boolean;
-    function isSubscribed(callback: SubscriptionCallback<T>): boolean;
-    function isSubscribed(arg1: string | SubscriptionCallback<T>): boolean {
-      const [subId, callback] = typeof arg1 === 'string' ? [arg1, undefined] : [null, arg1];
+    function isSubscribed(callback: SubscriptionCallback<T>): boolean {
+      return isSubscribedInternal(null, callback);
+    }
+
+    function isSubscribedById(subId: string): boolean {
+      return isSubscribedInternal(subId);
+    }
+
+    function isSubscribedInternal(subId: string | null, callback?: SubscriptionCallback<T>): boolean {
       const subscription = findSubscription(subId, callback);
       return subscription !== undefined;
     }
@@ -301,22 +293,17 @@ export const Subscription = (() => {
 })();
 
 export const SuubErreur = {
-  SubscriptionDestroyed: Erreur.declare<null>(
-    'SubscriptionDestroyed',
-    () => `The subscription has been destroyed`
-  ).withTransform(() => null),
+  SubscriptionDestroyed: Erreur.declare<null>('SubscriptionDestroyed', () => `The subscription has been destroyed`).withTransform(
+    () => null
+  ),
   MaxSubscriptionCountReached: Erreur.declare<null>(
     'MaxSubscriptionCountReached',
-    () =>
-      `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`
+    () => `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`
   ).withTransform(() => null),
-  MaxRecursiveCallReached: Erreur.declare<null>(
-    'MaxRecursiveCallReached',
-    () =>
-      `The maxRecursiveCall has been reached, did you emit() in a callback ? If this is expected you can use the maxRecursiveCall option to raise the limit`
-  ).withTransform(() => null),
-  InvalidCallback: Erreur.declare<null>(
-    'InvalidCallback',
-    () => `The callback is not a function`
-  ).withTransform(() => null),
+  maxRecursiveEmitReached: Erreur.declare<{ limit: number }>(
+    'maxRecursiveEmitReached',
+    ({ limit }) =>
+      `The maxRecursiveEmit limit (${limit}) has been reached, did you emit() in a callback ? If this is expected you can use the maxRecursiveEmit option to raise the limit`
+  ).withTransform((limit: number) => ({ limit })),
+  InvalidCallback: Erreur.declare<null>('InvalidCallback', () => `The callback is not a function`).withTransform(() => null),
 };

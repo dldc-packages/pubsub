@@ -27,9 +27,9 @@ test('Basic void subscription', () => {
 test('Id subscription', () => {
   const sub = Subscription.create<number>();
   const cb1 = jest.fn();
-  sub.subscribe('sub1', cb1);
+  sub.subscribeById('sub1', cb1);
   sub.emit(42);
-  sub.unsubscribe('sub1');
+  sub.unsubscribeById('sub1');
   sub.emit(3);
   expect(sub.isSubscribed(cb1)).toBe(false);
   expect(cb1).toHaveBeenCalledTimes(1);
@@ -39,7 +39,7 @@ test('Id subscription', () => {
 test('Ref subscription', () => {
   const sub = Subscription.create<number>();
   const cb1 = jest.fn();
-  sub.subscribe('sub1', cb1);
+  sub.subscribeById('sub1', cb1);
   sub.emit(42);
   sub.unsubscribe(cb1);
   sub.emit(3);
@@ -66,9 +66,9 @@ test('unsub unsubscribed ref does not throw', () => {
 
 test('unsub unsubscribed subId does not throw', () => {
   const sub = Subscription.create<number>();
-  expect(sub.isSubscribed('my-id')).toBe(false);
+  expect(sub.isSubscribedById('my-id')).toBe(false);
   expect(() => {
-    sub.unsubscribe('my-id');
+    sub.unsubscribeById('my-id');
   }).not.toThrow();
 });
 
@@ -111,9 +111,9 @@ test('Resubscribe the same subId should move it to the end', () => {
   const sub = Subscription.create<number>();
   const cb1 = jest.fn();
   const cb2 = jest.fn();
-  sub.subscribe('sub1', cb1);
+  sub.subscribeById('sub1', cb1);
   sub.emit(42);
-  sub.subscribe('sub1', cb2);
+  sub.subscribeById('sub1', cb2);
   sub.emit(3);
   expect(cb1).toHaveBeenCalledTimes(1);
   expect(cb2).toHaveBeenCalledTimes(1);
@@ -124,7 +124,7 @@ test('Resubscribe the same subId should move it to the end', () => {
 test('Unsub twice with a subId should not throw an error', () => {
   const sub = Subscription.create<number>();
   const cb1 = jest.fn();
-  const unsub = sub.subscribe('sub1', cb1);
+  const unsub = sub.subscribeById('sub1', cb1);
   unsub();
   expect(() => {
     unsub();
@@ -134,11 +134,11 @@ test('Unsub twice with a subId should not throw an error', () => {
 test('Unsub twice with a subId using sub.unsubscribe should not throw an error', () => {
   const sub = Subscription.create<number>();
   const cb1 = jest.fn();
-  sub.subscribe('sub1', cb1);
-  sub.unsubscribe('sub1');
-  expect(sub.isSubscribed('sub1')).toBe(false);
+  sub.subscribeById('sub1', cb1);
+  sub.unsubscribeById('sub1');
+  expect(sub.isSubscribedById('sub1')).toBe(false);
   expect(() => {
-    sub.unsubscribe('sub1');
+    sub.unsubscribeById('sub1');
   }).not.toThrow();
 });
 
@@ -167,14 +167,14 @@ test('If cb remove a callback not called yet it should not call it', () => {
 test('If a cb remove a callback by subId not called yet it should not call it', () => {
   const sub = Subscription.create<number>();
   const cb1 = () => {
-    sub.unsubscribe('sub2');
+    sub.unsubscribeById('sub2');
   };
   const cb2 = jest.fn();
   sub.subscribe(cb1);
-  sub.subscribe('sub2', cb2);
+  sub.subscribeById('sub2', cb2);
   sub.emit(42);
   expect(cb2).not.toHaveBeenCalled();
-  expect(sub.isSubscribed('sub2')).toBe(false);
+  expect(sub.isSubscribedById('sub2')).toBe(false);
 });
 
 test('If cb remove a callback already called it should not skip cb', () => {
@@ -236,8 +236,8 @@ test('calling unsubscribeAll should work', () => {
 test('subscribing twice the same callback with subId should return the same unsub', () => {
   const sub = Subscription.create<number>();
   const cb1 = jest.fn();
-  const unsub1 = sub.subscribe('sub', cb1);
-  const unsub2 = sub.subscribe('sub', cb1);
+  const unsub1 = sub.subscribeById('sub', cb1);
+  const unsub2 = sub.subscribeById('sub', cb1);
   expect(unsub1).toBe(unsub2);
 });
 
@@ -300,11 +300,11 @@ test('Calling call in a callback should throw because of inifnite loop', () => {
     sub.emit(val++);
   });
   sub.subscribe(cb1);
-  expect(() => sub.emit(val++)).toThrow(/maxRecursiveCall/);
+  expect(() => sub.emit(val++)).toThrow(/maxRecursiveEmit/);
 });
 
-test('maxRecursiveCall', () => {
-  const sub = Subscription.create<number>({ maxRecursiveCall: 10 });
+test('maxRecursiveEmit', () => {
+  const sub = Subscription.create<number>({ maxRecursiveEmit: 10 });
   const cb1 = jest.fn((val) => {
     if (val > 0) {
       sub.emit(val - 1);
@@ -312,7 +312,7 @@ test('maxRecursiveCall', () => {
   });
   sub.subscribe(cb1);
   expect(() => sub.emit(9)).not.toThrow();
-  expect(() => sub.emit(10)).toThrow(/maxRecursiveCall/);
+  expect(() => sub.emit(10)).toThrow(/maxRecursiveEmit/);
 });
 
 test('maxSubscriptionCount limit the number of subscriptions', () => {
@@ -439,4 +439,47 @@ test('onDestroy is called when destroy is called', () => {
   sub.destroy();
   expect(onDestroy).toHaveBeenCalledTimes(1);
   expect(sub.isDestroyed()).toBe(true);
+});
+
+test('resubscribing subid should update the callback', () => {
+  const sub = Subscription.create<number>();
+  const cb1 = jest.fn();
+  const cb2 = jest.fn();
+  const subid = 'subid';
+  sub.subscribeById(subid, cb1);
+  sub.emit(42);
+  expect(cb1).toHaveBeenCalledTimes(1);
+  expect(cb1).toHaveBeenCalledWith(42);
+  expect(cb2).not.toHaveBeenCalled();
+  sub.subscribeById(subid, cb2);
+  sub.emit(21);
+  expect(cb1).toHaveBeenCalledTimes(1);
+  expect(cb2).toHaveBeenCalledTimes(1);
+  expect(cb2).toHaveBeenCalledWith(21);
+});
+
+describe('resubscribing last subscription should not trigger onLastUnsubscribe', () => {
+  test('with id subscription', () => {
+    const onLastUnsubscribe = jest.fn();
+    const sub = Subscription.create<number>({
+      onLastUnsubscribe,
+    });
+    const cb1 = jest.fn();
+    sub.subscribeById('subid1', cb1);
+    expect(onLastUnsubscribe).not.toHaveBeenCalled();
+    sub.subscribeById('subid2', cb1);
+    expect(onLastUnsubscribe).not.toHaveBeenCalled();
+  });
+
+  test('with callback subscription', () => {
+    const onLastUnsubscribe = jest.fn();
+    const sub = Subscription.create<number>({
+      onLastUnsubscribe,
+    });
+    const cb1 = jest.fn();
+    sub.subscribe(cb1);
+    expect(onLastUnsubscribe).not.toHaveBeenCalled();
+    sub.subscribe(cb1);
+    expect(onLastUnsubscribe).not.toHaveBeenCalled();
+  });
 });
