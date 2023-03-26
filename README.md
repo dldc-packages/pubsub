@@ -2,7 +2,7 @@
   <img src="https://raw.githubusercontent.com/etienne-dldc/suub/main/design/logo.png" width="597" alt="suub logo">
 </p>
 
-# 📫 Suub [![Build Status](https://travis-ci.org/etienne-dldc/suub.svg?branch=master)](https://travis-ci.org/etienne-dldc/suub) [![](https://badgen.net/bundlephobia/minzip/suub)](https://bundlephobia.com/result?p=suub)
+# 📫 Suub
 
 > A simple pub/sub written in Typescript
 
