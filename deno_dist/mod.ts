@@ -242,17 +242,14 @@ export const Suub = (() => {
       while (emitQueueSafe > 0 && emitQueue.length > 0) {
         emitQueueSafe--;
         const emitItem = emitQueue.shift()!;
-        if (emitItem.channel !== DEFAULT_CHANNEL && emitItem.channel !== channel) {
-          continue;
-        }
         nextSubscriptions = [...subscriptions];
         let safe = maxSubscriptionCount;
         while (safe > 0 && nextSubscriptions.length > 0) {
           safe--;
           // cannot be undefined because length > 0
-          const item = nextSubscriptions.shift()!;
-          if (channel === DEFAULT_CHANNEL || item.channel === channel) {
-            item.callback(emitItem.value);
+          const subItem = nextSubscriptions.shift()!;
+          if (subItem.channel === DEFAULT_CHANNEL || emitItem.channel === DEFAULT_CHANNEL || subItem.channel === emitItem.channel) {
+            subItem.callback(emitItem.value);
           }
         }
         if (safe <= 0) {
@@ -335,7 +332,7 @@ export const Suub = (() => {
           return;
         }
         isSubscribed = false;
-        const index = subscriptions.findIndex((i) => i.callback === callback);
+        const index = subscriptions.findIndex((i) => (channel === DEFAULT_CHANNEL || i.channel === channel) && i.callback === callback);
 
         // isSubscribed is true but the callback is not in the list
         // this should not happend but if it does we ignore the unsub
