@@ -133,7 +133,7 @@ export const Suub = (() => {
 
     const subscriptions: Array<SubscriptionItem<Data, Channel>> = [];
     let nextSubscriptions: Array<SubscriptionItem<Data, Channel>> = [];
-    const emitQueue: Array<{ value: Data }> = [];
+    const emitQueue: Array<{ value: Data; channel: Channel | typeof DEFAULT_CHANNEL }> = [];
     let isEmitting = false;
     let destroyed = false;
 
@@ -233,7 +233,7 @@ export const Suub = (() => {
         throw SuubErreur.SubscriptionDestroyed.create();
       }
 
-      emitQueue.push({ value: newValue });
+      emitQueue.push({ value: newValue, channel });
       if (isEmitting) {
         return;
       }
@@ -241,7 +241,10 @@ export const Suub = (() => {
       let emitQueueSafe = maxRecursiveEmit + 1; // add one because we don't count the first one
       while (emitQueueSafe > 0 && emitQueue.length > 0) {
         emitQueueSafe--;
-        const value = emitQueue.shift()!.value;
+        const emitItem = emitQueue.shift()!;
+        if (emitItem.channel !== DEFAULT_CHANNEL && emitItem.channel !== channel) {
+          continue;
+        }
         nextSubscriptions = [...subscriptions];
         let safe = maxSubscriptionCount;
         while (safe > 0 && nextSubscriptions.length > 0) {
@@ -249,7 +252,7 @@ export const Suub = (() => {
           // cannot be undefined because length > 0
           const item = nextSubscriptions.shift()!;
           if (channel === DEFAULT_CHANNEL || item.channel === channel) {
-            item.callback(value);
+            item.callback(emitItem.value);
           }
         }
         if (safe <= 0) {
