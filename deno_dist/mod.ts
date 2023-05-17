@@ -1,4 +1,4 @@
-import { Erreur } from 'https://raw.githubusercontent.com/etienne-dldc/erreur/v2.0.0/deno_dist/mod.ts';
+import { Erreur } from 'https://raw.githubusercontent.com/etienne-dldc/erreur/v2.1.0/deno_dist/mod.ts';
 
 export type Unsubscribe = () => void;
 export type OnUnsubscribed = () => void;
