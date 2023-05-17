@@ -1,6 +1,6 @@
 {
   "name": "suub",
-  "version": "4.0.3",
+  "version": "5.0.0",
   "description": "A simple pub/sub written in Typescript",
   "keywords": [
     "subscribe",
