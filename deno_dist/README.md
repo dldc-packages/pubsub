@@ -9,9 +9,9 @@
 ## Gist
 
 ```ts
-import { Subscription } from 'suub';
+import { Suub } from 'suub';
 
-const mySub = Subscription.create<number>();
+const mySub = Suub.createSubscription<number>();
 
 const unsub = mySub.subscribe((num) => {
   console.log('num: ' + num);
@@ -26,28 +26,28 @@ unsub();
 
 ### Creating a Subscription
 
-To create a `Subscription` you need to import the `Subscription.create` function and call it.
+To create a `Subscription` you need to import the `Suub.createSubscription` function and call it.
 
 ```ts
-import { Subscription } from 'suub';
+import { Suub } from 'suub';
 
-const subscription = Subscription.create();
+const subscription = Suub.createSubscription();
 ```
 
-If you use TypeScript, you need to pass a type parameter to the `Subscription.create` function to define the type of the value associated with the subscription.
+If you use TypeScript, you need to pass a type parameter to the `Suub.createSubscription` function to define the type of the value associated with the subscription.
 
 ```ts
-import { Subscription } from 'suub';
+import { Suub } from 'suub';
 
-const numSubscription = Subscription.create<number>();
+const numSubscription = Suub.createSubscription<number>();
 ```
 
-If you don't want your subscription not to emit any value, you can use the `Subscription.createVoid` function.
+If you don't want your subscription not to emit any value, you can use the `Suub.createVoidSubscription` function.
 
 ```ts
-import { Subscription } from 'suub';
+import { Suub } from 'suub';
 
-const voidSubscription = Subscription.createVoid();
+const voidSubscription = Suub.createVoidSubscription();
 ```
 
 ### Subscribe and Unsubscribe
@@ -139,6 +139,7 @@ const sub = Subscription.create({
   onDestroy: () => {},
   maxSubscriptionCount: 10000,
   maxRecursiveEmit: 1000,
+  maxUnsubscribeAllLoop: 1000,
 });
 ```
 
@@ -160,7 +161,11 @@ const sub = Subscription.create({
 
 #### `maxRecursiveEmit`
 
-> A number to limit the maximum recursive call of `emit` (defaumt is `1000`). This limit exist to detect infinite loop where you `emit` in a `callback`.
+> A number to limit the maximum recursive call of `emit` (default is `1000`). This limit exist to detect infinite loop where you `emit` in a `callback`.
+
+#### `maxUnsubscribeAllLoop`
+
+> A number to limit the maximum recursive call of `subscribe` inside a `onUnsubscribe` callback (default is `1000`).
 
 ### Testing if a callback / subId is subscribed
 
@@ -193,6 +198,12 @@ You can check if a subscription is destroyed by calling the `isDestroyed` method
 
 ```ts
 subscription.isDestroyed(); // <- boolean
+```
+
+## Channels
+
+```
+// TODO
 ```
 
 ## Some precisions

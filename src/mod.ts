@@ -8,12 +8,8 @@ export type UnsubscribeAllMethod = () => void;
 
 export type SubscribeMethod<T> = (callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
 export type SubscribeByIdMethod<T> = (subId: string, callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
-
 export type VoidSubscribeMethod = (callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
 export type VoidSubscribeByIdMethod = (subId: string, callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
-
-export type VoidWatchMethod = (callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
-export type VoidWatchByIdMethod = (subId: string, callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
 
 export type IsSubscribedMethod<T> = (callback: SubscriptionCallback<T>) => boolean;
 export type IsSubscribedByIdMethod = (subId: string) => boolean;
@@ -27,26 +23,27 @@ export type VoidIsSubscribedByIdMethod = (subId: string) => boolean;
 export type VoidUnsubscribeMethod = (callback: VoidSubscriptionCallback) => void;
 export type VoidUnsubscribeByIdMethod = (subId: string) => void;
 
-export interface ISubscription<T> {
-  subscribe: SubscribeMethod<T>;
-  subscribeById: SubscribeByIdMethod<T>;
-  unsubscribe: UnsubscribeMethod<T>;
+export type ChannelMethod<Data, Channel> = <D extends Data>(channel: Channel) => ISubscription<D, Channel>;
+export type VoidChannelMethod<Channel> = (channel: Channel) => IVoidSubscription<Channel>;
+
+export interface ISubscription<Data, Channel = any> {
+  subscribe: SubscribeMethod<Data>;
+  subscribeById: SubscribeByIdMethod<Data>;
+  unsubscribe: UnsubscribeMethod<Data>;
   unsubscribeById: UnsubscribeByIdMethod;
-  isSubscribed: IsSubscribedMethod<T>;
+  isSubscribed: IsSubscribedMethod<Data>;
   isSubscribedById: IsSubscribedByIdMethod;
   unsubscribeAll: UnsubscribeAllMethod;
   size: () => number;
-  emit: (newValue: T) => void;
+  emit: (newValue: Data) => void;
   // unsubscribe all and forbid new subscriptions
   destroy: () => void;
   isDestroyed: () => boolean;
+  // channel
+  channel: ChannelMethod<Data, Channel>;
 }
-/**
- * @deprecated use ISubscription instead
- */
-export type Subscription<T> = ISubscription<T>;
 
-export interface IVoidSubscription {
+export interface IVoidSubscription<Channel = any> {
   subscribe: VoidSubscribeMethod;
   subscribeById: VoidSubscribeByIdMethod;
   unsubscribe: VoidUnsubscribeMethod;
@@ -59,11 +56,23 @@ export interface IVoidSubscription {
   // unsubscribe all and forbid new subscriptions
   destroy: () => void;
   isDestroyed: () => boolean;
+  // channel
+  channel: VoidChannelMethod<Channel>;
 }
-/**
- * @deprecated use IVoidSubscription instead
- */
-export type VoidSubscription = IVoidSubscription;
+
+export type MultiCreateChannelMethod = <Data>() => ISubscription<Data, never>;
+export type MultiCreateVoidChannelMethod = () => IVoidSubscription<never>;
+
+export interface IMultiSubscription {
+  unsubscribeAll: UnsubscribeAllMethod;
+  size: () => number;
+
+  destroy: () => void;
+  isDestroyed: () => boolean;
+
+  createChannel: MultiCreateChannelMethod;
+  createVoidChannel: MultiCreateVoidChannelMethod;
+}
 
 export interface ISubscriptionOptions {
   onFirstSubscription?: () => void;
@@ -71,51 +80,138 @@ export interface ISubscriptionOptions {
   onDestroy?: () => void;
   maxSubscriptionCount?: number;
   maxRecursiveEmit?: number;
-}
-/**
- * @deprecated use ISubscriptionOptions instead
- */
-export type SubscriptionOptions = ISubscriptionOptions;
-
-// @internal
-interface SubscriptionItem<T> {
-  callback: SubscriptionCallback<T>;
-  subId: string | null;
-  unsubscribe: Unsubscribe;
-  onUnsubscribe: OnUnsubscribed | undefined;
+  maxUnsubscribeAllLoop?: number;
 }
 
-export const Subscription = (() => {
-  return { create, createVoid };
-
-  function createVoid(options: ISubscriptionOptions = {}): IVoidSubscription {
-    return create<void>(options);
+export const Suub = (() => {
+  interface SubscriptionItem<Data, Channel> {
+    channel: Channel | typeof DEFAULT_CHANNEL;
+    callback: SubscriptionCallback<Data>;
+    subId: string | null;
+    unsubscribe: Unsubscribe;
+    onUnsubscribe: OnUnsubscribed | undefined;
   }
 
-  function create<T>(options: ISubscriptionOptions = {}): ISubscription<T> {
-    const { onFirstSubscription, onLastUnsubscribe, onDestroy, maxRecursiveEmit = 1000, maxSubscriptionCount = 10000 } = options;
+  const DEFAULT_CHANNEL = Symbol('DEFAULT_CHANNEL');
 
-    const subscriptions: Array<SubscriptionItem<T>> = [];
-    let nextSubscriptions: Array<SubscriptionItem<T>> = [];
-    const emitQueue: Array<{ value: T }> = [];
+  return { createSubscription, createVoidSubscription, createMultiSubscription };
+
+  function createMultiSubscription(): IMultiSubscription {
+    const rootSub = createSubscription<any, symbol>();
+
+    return {
+      unsubscribeAll: rootSub.unsubscribeAll,
+      size: rootSub.size,
+      destroy: rootSub.destroy,
+      isDestroyed: rootSub.isDestroyed,
+      createChannel,
+      createVoidChannel,
+    };
+
+    function createChannel<Data>() {
+      return rootSub.channel<Data>(Symbol());
+    }
+
+    function createVoidChannel(): IVoidSubscription<any> {
+      return createChannel() as any;
+    }
+  }
+
+  function createVoidSubscription<Channel = any>(options: ISubscriptionOptions = {}): IVoidSubscription<Channel> {
+    return createSubscription<void>(options);
+  }
+
+  function createSubscription<Data, Channel = any>(options: ISubscriptionOptions = {}): ISubscription<Data, Channel> {
+    const {
+      onFirstSubscription,
+      onLastUnsubscribe,
+      onDestroy,
+      maxRecursiveEmit = 1000,
+      maxSubscriptionCount = 10000,
+      maxUnsubscribeAllLoop = 1000,
+    } = options;
+
+    const subscriptions: Array<SubscriptionItem<Data, Channel>> = [];
+    let nextSubscriptions: Array<SubscriptionItem<Data, Channel>> = [];
+    const emitQueue: Array<{ value: Data }> = [];
     let isEmitting = false;
     let destroyed = false;
 
-    const sub: ISubscription<T> = {
-      subscribe,
-      subscribeById,
-      unsubscribe,
-      unsubscribeById,
-      isSubscribed,
-      isSubscribedById,
-      unsubscribeAll,
-      emit,
-      size,
-      destroy,
-      isDestroyed,
-    };
+    return createChannel(DEFAULT_CHANNEL);
 
-    return sub as any;
+    function createChannel<D extends Data>(channel: Channel | typeof DEFAULT_CHANNEL): ISubscription<D, Channel> {
+      const sub: ISubscription<Data> = {
+        subscribe,
+        subscribeById,
+        unsubscribe,
+        unsubscribeById,
+        isSubscribed,
+        isSubscribedById,
+        unsubscribeAll,
+        emit,
+        size,
+        destroy,
+        isDestroyed,
+        channel: createChannel,
+      };
+
+      return sub as any;
+
+      function emit(newValue: Data): void {
+        return emitInternal(channel, newValue);
+      }
+
+      function subscribe(callback: SubscriptionCallback<Data>, onUnsubscribe?: OnUnsubscribed): Unsubscribe {
+        return subscribeInternal(channel, callback, null, onUnsubscribe);
+      }
+
+      function subscribeById(subId: string, callback: SubscriptionCallback<Data>, onUnsubscribe?: OnUnsubscribed): Unsubscribe {
+        return subscribeInternal(channel, callback, subId, onUnsubscribe);
+      }
+
+      function unsubscribeAll(): void {
+        return unsubscribeAllInternal(channel);
+      }
+
+      function unsubscribe(callback: SubscriptionCallback<Data>): void {
+        unsubscribeInternal(null, callback);
+      }
+
+      function unsubscribeById(subId: string): void {
+        unsubscribeInternal(subId);
+      }
+
+      function unsubscribeInternal(subId: string | null, callback?: SubscriptionCallback<Data>): void {
+        const subscription = findSubscription(channel, subId, callback);
+        if (subscription) {
+          subscription.unsubscribe();
+        }
+      }
+
+      function isSubscribed(callback: SubscriptionCallback<Data>): boolean {
+        return isSubscribedInternal(null, callback);
+      }
+
+      function isSubscribedById(subId: string): boolean {
+        return isSubscribedInternal(subId);
+      }
+
+      function isSubscribedInternal(subId: string | null, callback?: SubscriptionCallback<Data>): boolean {
+        const subscription = findSubscription(channel, subId, callback);
+        return subscription !== undefined;
+      }
+
+      function size(): number {
+        return sizeInternal(channel);
+      }
+    }
+
+    function sizeInternal(channel: Channel | typeof DEFAULT_CHANNEL): number {
+      if (channel === DEFAULT_CHANNEL) {
+        return subscriptions.length;
+      }
+      return subscriptions.filter((sub) => sub.channel === channel).length;
+    }
 
     function isDestroyed() {
       return destroyed;
@@ -126,16 +222,17 @@ export const Subscription = (() => {
         return;
       }
       destroyed = true;
-      unsubscribeAll();
+      unsubscribeAllInternal(DEFAULT_CHANNEL);
       if (onDestroy) {
         onDestroy();
       }
     }
 
-    function emit(newValue: T): void {
+    function emitInternal(channel: Channel | typeof DEFAULT_CHANNEL, newValue: Data): void {
       if (destroyed) {
         throw SuubErreur.SubscriptionDestroyed.create();
       }
+
       emitQueue.push({ value: newValue });
       if (isEmitting) {
         return;
@@ -151,7 +248,9 @@ export const Subscription = (() => {
           safe--;
           // cannot be undefined because length > 0
           const item = nextSubscriptions.shift()!;
-          item.callback(value);
+          if (channel === DEFAULT_CHANNEL || item.channel === channel) {
+            item.callback(value);
+          }
         }
         if (safe <= 0) {
           isEmitting = false;
@@ -160,20 +259,33 @@ export const Subscription = (() => {
       }
       isEmitting = false;
       if (emitQueueSafe <= 0) {
-        throw SuubErreur.maxRecursiveEmitReached.create(maxRecursiveEmit);
+        throw SuubErreur.MaxRecursiveEmitReached.create(maxRecursiveEmit);
       }
     }
 
-    function subscribe(callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed): Unsubscribe {
-      return subscribeInternal(callback, null, onUnsubscribe);
-    }
-
-    function subscribeById(subId: string, callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed): Unsubscribe {
-      return subscribeInternal(callback, subId, onUnsubscribe);
+    function unsubscribeAllInternal(channel: Channel | typeof DEFAULT_CHANNEL): void {
+      let safe = maxUnsubscribeAllLoop + subscriptions.length;
+      while (safe > 0) {
+        if (subscriptions.length === 0) {
+          break;
+        }
+        const nextItem = subscriptions.find((item) => channel === DEFAULT_CHANNEL || item.channel === channel);
+        if (!nextItem) {
+          break;
+        }
+        safe--;
+        nextItem.unsubscribe();
+      }
+      if (safe <= 0) {
+        throw SuubErreur.MaxUnsubscribeAllLoopReached.create(maxUnsubscribeAllLoop);
+      }
+      // Note: we don't need to clear the emit queue because the unsubscribe() will take care of it
+      return;
     }
 
     function subscribeInternal(
-      callback: SubscriptionCallback<T>,
+      channel: Channel | typeof DEFAULT_CHANNEL,
+      callback: SubscriptionCallback<Data>,
       subId: string | null,
       onUnsubscribe: OnUnsubscribed | undefined
     ): Unsubscribe {
@@ -185,7 +297,7 @@ export const Subscription = (() => {
         throw SuubErreur.InvalidCallback.create();
       }
 
-      const alreadySubscribed = findSubscription(subId, callback);
+      const alreadySubscribed = findSubscription(channel, subId, callback);
 
       if (alreadySubscribed) {
         if (subId !== null) {
@@ -205,6 +317,7 @@ export const Subscription = (() => {
       // New subscription
       let isSubscribed = true;
       subscriptions.push({
+        channel,
         subId,
         callback: callback,
         unsubscribe: unsubscribeCurrent,
@@ -245,48 +358,17 @@ export const Subscription = (() => {
       return unsubscribeCurrent;
     }
 
-    function findSubscription(subId: string | null, callback?: SubscriptionCallback<any>): SubscriptionItem<T> | undefined {
-      return subId === null ? subscriptions.find((l) => l.callback === callback) : subscriptions.find((l) => l.subId === subId);
-    }
-
-    function unsubscribeAll(): void {
-      while (subscriptions.length > 0) {
-        subscriptions[0].unsubscribe();
-      }
-      // Note: we don't need to clear the emit queue because the unsubscribe() will take care of it
-      return;
-    }
-
-    function unsubscribe(callback: SubscriptionCallback<T>): void {
-      unsubscribeInternal(null, callback);
-    }
-
-    function unsubscribeById(subId: string): void {
-      unsubscribeInternal(subId);
-    }
-
-    function unsubscribeInternal(subId: string | null, callback?: SubscriptionCallback<T>): void {
-      const subscription = findSubscription(subId, callback);
-      if (subscription) {
-        subscription.unsubscribe();
-      }
-    }
-
-    function isSubscribed(callback: SubscriptionCallback<T>): boolean {
-      return isSubscribedInternal(null, callback);
-    }
-
-    function isSubscribedById(subId: string): boolean {
-      return isSubscribedInternal(subId);
-    }
-
-    function isSubscribedInternal(subId: string | null, callback?: SubscriptionCallback<T>): boolean {
-      const subscription = findSubscription(subId, callback);
-      return subscription !== undefined;
-    }
-
-    function size(): number {
-      return subscriptions.length;
+    function findSubscription(
+      channel: Channel | typeof DEFAULT_CHANNEL,
+      subId: string | null,
+      callback?: SubscriptionCallback<any>
+    ): SubscriptionItem<Data, Channel> | undefined {
+      return subscriptions.find((item) => {
+        if (channel !== DEFAULT_CHANNEL && item.channel !== channel) {
+          return false;
+        }
+        return subId === null ? item.callback === callback : item.subId === subId;
+      });
     }
   }
 })();
@@ -299,10 +381,15 @@ export const SuubErreur = {
     'MaxSubscriptionCountReached',
     () => `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`
   ).withTransform(() => null),
-  maxRecursiveEmitReached: Erreur.declare<{ limit: number }>(
-    'maxRecursiveEmitReached',
+  MaxRecursiveEmitReached: Erreur.declare<{ limit: number }>(
+    'MaxRecursiveEmitReached',
     ({ limit }) =>
       `The maxRecursiveEmit limit (${limit}) has been reached, did you emit() in a callback ? If this is expected you can use the maxRecursiveEmit option to raise the limit`
+  ).withTransform((limit: number) => ({ limit })),
+  MaxUnsubscribeAllLoopReached: Erreur.declare<{ limit: number }>(
+    'MaxUnsubscribeAllLoopReached',
+    ({ limit }) =>
+      `The maxUnsubscribeAllLoop limit (${limit}) has been reached, did you call subscribe() in the onUnsubscribe callback then called unsubscribeAll ? If this is expected you can use the maxUnsubscribeAllLoop option to raise the limit`
   ).withTransform((limit: number) => ({ limit })),
   InvalidCallback: Erreur.declare<null>('InvalidCallback', () => `The callback is not a function`).withTransform(() => null),
 };
