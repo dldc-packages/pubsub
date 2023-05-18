@@ -641,3 +641,46 @@ test('Subscribe in onUnsubscribe multi loop should throw', () => {
 
   expect(() => sub.unsubscribeAll()).toThrow();
 });
+
+test('Emit in subscribe is deffered', () => {
+  const sub = Suub.createMultiSubscription();
+
+  const chan1 = sub.createVoidChannel();
+  const chan2 = sub.createVoidChannel();
+
+  const cb2 = jest.fn(() => {
+    chan1.emit();
+  });
+
+  chan2.subscribe(cb2);
+
+  let emited = false;
+
+  const cb1 = jest.fn(() => {
+    if (!emited) {
+      chan2.emit();
+      emited = true;
+    }
+  });
+
+  chan1.subscribe(cb1);
+
+  chan1.emit();
+
+  expect(cb1).toHaveBeenCalledTimes(2);
+  expect(cb2).toHaveBeenCalledTimes(1);
+});
+
+test('Can emit in deferred', () => {
+  const sub = Suub.createSubscription<number>();
+
+  const cb1 = jest.fn();
+  sub.subscribe(cb1);
+
+  sub.deferred(() => {
+    sub.emit(42);
+    sub.emit(1);
+  });
+
+  expect(cb1).toHaveBeenCalledTimes(2);
+});

@@ -26,6 +26,8 @@ export type VoidUnsubscribeByIdMethod = (subId: string) => void;
 export type ChannelMethod<Data, Channel> = <D extends Data>(channel: Channel) => ISubscription<D, Channel>;
 export type VoidChannelMethod<Channel> = (channel: Channel) => IVoidSubscription<Channel>;
 
+export type DeferredMethod = <Result>(callback: () => Result) => Result;
+
 export interface ISubscription<Data, Channel = any> {
   subscribe: SubscribeMethod<Data>;
   subscribeById: SubscribeByIdMethod<Data>;
@@ -36,6 +38,7 @@ export interface ISubscription<Data, Channel = any> {
   unsubscribeAll: UnsubscribeAllMethod;
   size: () => number;
   emit: (newValue: Data) => void;
+  deferred: DeferredMethod;
   // unsubscribe all and forbid new subscriptions
   destroy: () => void;
   isDestroyed: () => boolean;
@@ -53,6 +56,7 @@ export interface IVoidSubscription<Channel = any> {
   unsubscribeAll: UnsubscribeAllMethod;
   size: () => number;
   emit: () => void;
+  deferred: DeferredMethod;
   // unsubscribe all and forbid new subscriptions
   destroy: () => void;
   isDestroyed: () => boolean;
@@ -66,10 +70,9 @@ export type MultiCreateVoidChannelMethod = () => IVoidSubscription<never>;
 export interface IMultiSubscription {
   unsubscribeAll: UnsubscribeAllMethod;
   size: () => number;
-
+  deferred: DeferredMethod;
   destroy: () => void;
   isDestroyed: () => boolean;
-
   createChannel: MultiCreateChannelMethod;
   createVoidChannel: MultiCreateVoidChannelMethod;
 }
@@ -104,6 +107,7 @@ export const Suub = (() => {
       size: rootSub.size,
       destroy: rootSub.destroy,
       isDestroyed: rootSub.isDestroyed,
+      deferred: rootSub.deferred,
       createChannel,
       createVoidChannel,
     };
@@ -149,6 +153,7 @@ export const Suub = (() => {
         isSubscribedById,
         unsubscribeAll,
         emit,
+        deferred,
         size,
         destroy,
         isDestroyed,
@@ -232,12 +237,25 @@ export const Suub = (() => {
       if (destroyed) {
         throw SuubErreur.SubscriptionDestroyed.create();
       }
-
       emitQueue.push({ value: newValue, channel });
       if (isEmitting) {
         return;
       }
       isEmitting = true;
+      handleEmitQueue();
+    }
+
+    function deferred<Result>(callback: () => Result): Result {
+      if (isEmitting) {
+        return callback();
+      }
+      isEmitting = true;
+      const result = callback();
+      handleEmitQueue();
+      return result;
+    }
+
+    function handleEmitQueue() {
       let emitQueueSafe = maxRecursiveEmit + 1; // add one because we don't count the first one
       while (emitQueueSafe > 0 && emitQueue.length > 0) {
         emitQueueSafe--;
