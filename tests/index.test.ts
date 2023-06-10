@@ -1,8 +1,9 @@
+import { describe, expect, test, vi } from 'vitest';
 import { Suub } from '../src/mod';
 
 test('Basic subscription', () => {
   const sub = Suub.createSubscription<number>();
-  const cb1 = jest.fn();
+  const cb1 = vi.fn();
   const unsub1 = sub.subscribe(cb1);
   sub.emit(42);
   unsub1();
@@ -14,7 +15,7 @@ test('Basic subscription', () => {
 
 test('Basic void subscription', () => {
   const sub = Suub.createVoidSubscription();
-  const cb1 = jest.fn();
+  const cb1 = vi.fn();
   const unsub1 = sub.subscribe(cb1);
   sub.emit();
   unsub1();
@@ -26,7 +27,7 @@ test('Basic void subscription', () => {
 
 test('Id subscription', () => {
   const sub = Suub.createSubscription<number>();
-  const cb1 = jest.fn();
+  const cb1 = vi.fn();
   sub.subscribeById('sub1', cb1);
   sub.emit(42);
   sub.unsubscribeById('sub1');
@@ -38,7 +39,7 @@ test('Id subscription', () => {
 
 test('Ref subscription', () => {
   const sub = Suub.createSubscription<number>();
-  const cb1 = jest.fn();
+  const cb1 = vi.fn();
   sub.subscribeById('sub1', cb1);
   sub.emit(42);
   sub.unsubscribe(cb1);
@@ -50,14 +51,14 @@ test('Ref subscription', () => {
 
 test('IsSubscribe subscription', () => {
   const sub = Suub.createSubscription<number>();
-  const cb1 = jest.fn();
+  const cb1 = vi.fn();
   sub.subscribe(cb1);
   expect(sub.isSubscribed(cb1)).toBe(true);
 });
 
 test('unsub unsubscribed ref does not throw', () => {
   const sub = Suub.createSubscription<number>();
-  const cb1 = jest.fn();
+  const cb1 = vi.fn();
   expect(sub.isSubscribed(cb1)).toBe(false);
   expect(() => {
     sub.unsubscribe(cb1);
@@ -74,7 +75,7 @@ test('unsub unsubscribed subId does not throw', () => {
 
 test('Resubscribe the same cb twice should work', () => {
   const sub = Suub.createSubscription<number>();
-  const cb1 = jest.fn();
+  const cb1 = vi.fn();
   sub.subscribe(cb1);
   sub.emit(42);
   sub.subscribe(cb1);
@@ -87,8 +88,8 @@ test('Resubscribe the same cb twice should work', () => {
 test('Resubscribe the same cb twice should move it to the end', () => {
   const sub = Suub.createSubscription<number>();
   let callCount = 0;
-  const cb1 = jest.fn(() => callCount++);
-  const cb2 = jest.fn(() => callCount++);
+  const cb1 = vi.fn(() => callCount++);
+  const cb2 = vi.fn(() => callCount++);
   sub.subscribe(cb1);
   sub.subscribe(cb2);
   sub.emit(42);
@@ -109,8 +110,8 @@ test('Resubscribe the same cb twice should move it to the end', () => {
 
 test('Resubscribe the same subId should move it to the end', () => {
   const sub = Suub.createSubscription<number>();
-  const cb1 = jest.fn();
-  const cb2 = jest.fn();
+  const cb1 = vi.fn();
+  const cb2 = vi.fn();
   sub.subscribeById('sub1', cb1);
   sub.emit(42);
   sub.subscribeById('sub1', cb2);
@@ -123,7 +124,7 @@ test('Resubscribe the same subId should move it to the end', () => {
 
 test('Unsub twice with a subId should not throw an error', () => {
   const sub = Suub.createSubscription<number>();
-  const cb1 = jest.fn();
+  const cb1 = vi.fn();
   const unsub = sub.subscribeById('sub1', cb1);
   unsub();
   expect(() => {
@@ -133,7 +134,7 @@ test('Unsub twice with a subId should not throw an error', () => {
 
 test('Unsub twice with a subId using sub.unsubscribe should not throw an error', () => {
   const sub = Suub.createSubscription<number>();
-  const cb1 = jest.fn();
+  const cb1 = vi.fn();
   sub.subscribeById('sub1', cb1);
   sub.unsubscribeById('sub1');
   expect(sub.isSubscribedById('sub1')).toBe(false);
@@ -144,7 +145,7 @@ test('Unsub twice with a subId using sub.unsubscribe should not throw an error',
 
 test('Unsub twice with a cb should not throw an error', () => {
   const sub = Suub.createSubscription<number>();
-  const cb1 = jest.fn();
+  const cb1 = vi.fn();
   const unsub = sub.subscribe(cb1);
   unsub();
   expect(() => {
@@ -157,7 +158,7 @@ test('If cb remove a callback not called yet it should not call it', () => {
   const cb1 = () => {
     sub.unsubscribe(cb2);
   };
-  const cb2 = jest.fn();
+  const cb2 = vi.fn();
   sub.subscribe(cb1);
   sub.subscribe(cb2);
   sub.emit(42);
@@ -169,7 +170,7 @@ test('If a cb remove a callback by subId not called yet it should not call it', 
   const cb1 = () => {
     sub.unsubscribeById('sub2');
   };
-  const cb2 = jest.fn();
+  const cb2 = vi.fn();
   sub.subscribe(cb1);
   sub.subscribeById('sub2', cb2);
   sub.emit(42);
@@ -179,12 +180,12 @@ test('If a cb remove a callback by subId not called yet it should not call it', 
 
 test('If cb remove a callback already called it should not skip cb', () => {
   const sub = Suub.createSubscription<number>();
-  const cb1 = jest.fn();
-  const cb2 = jest.fn(() => {
+  const cb1 = vi.fn();
+  const cb2 = vi.fn(() => {
     sub.unsubscribe(cb1);
   });
-  const cb3 = jest.fn();
-  const cb4 = jest.fn();
+  const cb3 = vi.fn();
+  const cb4 = vi.fn();
   sub.subscribe(cb1);
   sub.subscribe(cb2);
   sub.subscribe(cb3);
@@ -198,11 +199,11 @@ test('If cb remove a callback already called it should not skip cb', () => {
 
 test('adding a callback in a cb should not call it until the next call()', () => {
   const sub = Suub.createSubscription<number>();
-  const cb1 = jest.fn();
-  const cb2 = jest.fn(() => {
+  const cb1 = vi.fn();
+  const cb2 = vi.fn(() => {
     sub.subscribe(cb3);
   });
-  const cb3 = jest.fn();
+  const cb3 = vi.fn();
   sub.subscribe(cb1);
   sub.subscribe(cb2);
   sub.emit(42);
@@ -217,9 +218,9 @@ test('adding a callback in a cb should not call it until the next call()', () =>
 
 test('calling unsubscribeAll should work', () => {
   const sub = Suub.createSubscription<number>();
-  const cb1 = jest.fn();
-  const cb2 = jest.fn();
-  const cb3 = jest.fn();
+  const cb1 = vi.fn();
+  const cb2 = vi.fn();
+  const cb3 = vi.fn();
   sub.subscribe(cb1);
   sub.subscribe(cb2);
   sub.subscribe(cb3);
@@ -235,7 +236,7 @@ test('calling unsubscribeAll should work', () => {
 
 test('subscribing twice the same callback with subId should return the same unsub', () => {
   const sub = Suub.createSubscription<number>();
-  const cb1 = jest.fn();
+  const cb1 = vi.fn();
   const unsub1 = sub.subscribeById('sub', cb1);
   const unsub2 = sub.subscribeById('sub', cb1);
   expect(unsub1).toBe(unsub2);
@@ -249,14 +250,14 @@ test('not passing a function as callback should throw an error', () => {
 });
 
 test('onFirstSubscription and onLastUnsubscribe', () => {
-  const onFirst = jest.fn();
-  const onLast = jest.fn();
+  const onFirst = vi.fn();
+  const onLast = vi.fn();
   const sub = Suub.createSubscription<number>({
     onFirstSubscription: onFirst,
     onLastUnsubscribe: onLast,
   });
-  const cb1 = jest.fn();
-  const cb2 = jest.fn();
+  const cb1 = vi.fn();
+  const cb2 = vi.fn();
   sub.subscribe(cb1);
   expect(onFirst).toHaveBeenCalledTimes(1);
   expect(onLast).not.toHaveBeenCalled();
@@ -276,11 +277,11 @@ test('onFirstSubscription and onLastUnsubscribe', () => {
 
 test('calling unsubscribeAll inside a cb should stop all the other', () => {
   const sub = Suub.createSubscription<number>();
-  const cb1 = jest.fn(() => {
+  const cb1 = vi.fn(() => {
     sub.unsubscribeAll();
   });
-  const cb2 = jest.fn();
-  const cb3 = jest.fn();
+  const cb2 = vi.fn();
+  const cb3 = vi.fn();
   sub.subscribe(cb1);
   sub.subscribe(cb2);
   sub.subscribe(cb3);
@@ -296,7 +297,7 @@ test('calling unsubscribeAll inside a cb should stop all the other', () => {
 test('Calling call in a callback should throw because of inifnite loop', () => {
   const sub = Suub.createSubscription<number>();
   let val = 0;
-  const cb1 = jest.fn(() => {
+  const cb1 = vi.fn(() => {
     sub.emit(val++);
   });
   sub.subscribe(cb1);
@@ -305,7 +306,7 @@ test('Calling call in a callback should throw because of inifnite loop', () => {
 
 test('maxRecursiveEmit', () => {
   const sub = Suub.createSubscription<number>({ maxRecursiveEmit: 10 });
-  const cb1 = jest.fn((val) => {
+  const cb1 = vi.fn((val) => {
     if (val > 0) {
       sub.emit(val - 1);
     }
@@ -329,13 +330,13 @@ test('maxSubscriptionCount limit the number of subscriptions', () => {
 test('Calling call conditinally in a callback should defer the call', () => {
   const sub = Suub.createSubscription<number>();
   let count = 0;
-  const cb1 = jest.fn((val) => {
+  const cb1 = vi.fn((val) => {
     if (val === 0) {
       sub.emit(1);
     }
     return count++;
   });
-  const cb2 = jest.fn(() => count++);
+  const cb2 = vi.fn(() => count++);
   sub.subscribe(cb1);
   sub.subscribe(cb2);
   sub.emit(0);
@@ -374,7 +375,7 @@ test('Sub.size() returns the number of subscriptions', () => {
 
 test('OnUnsubscribe is called when unsubscribe is called', () => {
   const sub = Suub.createSubscription<number>();
-  const onUnsub = jest.fn();
+  const onUnsub = vi.fn();
   const unsub = sub.subscribe(() => {}, onUnsub);
   expect(onUnsub).not.toHaveBeenCalled();
   unsub();
@@ -385,7 +386,7 @@ test('OnUnsubscribe is called when unsubscribe is called', () => {
 
 test('OnUnsubscribe is called when sub.unsubscribe is called', () => {
   const sub = Suub.createSubscription<number>();
-  const onUnsub = jest.fn();
+  const onUnsub = vi.fn();
   const cb = () => {};
   sub.subscribe(cb, onUnsub);
   expect(onUnsub).not.toHaveBeenCalled();
@@ -395,7 +396,7 @@ test('OnUnsubscribe is called when sub.unsubscribe is called', () => {
 
 test('OnUnsubscribe is called when sub.unsubscribeAll is called', () => {
   const sub = Suub.createSubscription<number>();
-  const onUnsub = jest.fn();
+  const onUnsub = vi.fn();
   sub.subscribe(() => {}, onUnsub);
   expect(onUnsub).not.toHaveBeenCalled();
   sub.unsubscribeAll();
@@ -404,8 +405,8 @@ test('OnUnsubscribe is called when sub.unsubscribeAll is called', () => {
 
 test('Resubscribing with different onUnsub should update the onUnsub', () => {
   const sub = Suub.createSubscription<number>();
-  const onUnsub1 = jest.fn();
-  const onUnsub2 = jest.fn();
+  const onUnsub1 = vi.fn();
+  const onUnsub2 = vi.fn();
   const cb = () => {};
   sub.subscribe(cb, onUnsub1);
   sub.subscribe(cb, onUnsub2);
@@ -431,7 +432,7 @@ test('Destroy twice should not throw', () => {
 });
 
 test('onDestroy is called when destroy is called', () => {
-  const onDestroy = jest.fn();
+  const onDestroy = vi.fn();
   const sub = Suub.createSubscription<number>({ onDestroy });
   expect(onDestroy).not.toHaveBeenCalled();
   sub.destroy();
@@ -443,8 +444,8 @@ test('onDestroy is called when destroy is called', () => {
 
 test('resubscribing subid should update the callback', () => {
   const sub = Suub.createSubscription<number>();
-  const cb1 = jest.fn();
-  const cb2 = jest.fn();
+  const cb1 = vi.fn();
+  const cb2 = vi.fn();
   const subid = 'subid';
   sub.subscribeById(subid, cb1);
   sub.emit(42);
@@ -460,11 +461,11 @@ test('resubscribing subid should update the callback', () => {
 
 describe('resubscribing last subscription should not trigger onLastUnsubscribe', () => {
   test('with id subscription', () => {
-    const onLastUnsubscribe = jest.fn();
+    const onLastUnsubscribe = vi.fn();
     const sub = Suub.createSubscription<number>({
       onLastUnsubscribe,
     });
-    const cb1 = jest.fn();
+    const cb1 = vi.fn();
     sub.subscribeById('subid1', cb1);
     expect(onLastUnsubscribe).not.toHaveBeenCalled();
     sub.subscribeById('subid2', cb1);
@@ -472,11 +473,11 @@ describe('resubscribing last subscription should not trigger onLastUnsubscribe',
   });
 
   test('with callback subscription', () => {
-    const onLastUnsubscribe = jest.fn();
+    const onLastUnsubscribe = vi.fn();
     const sub = Suub.createSubscription<number>({
       onLastUnsubscribe,
     });
-    const cb1 = jest.fn();
+    const cb1 = vi.fn();
     sub.subscribe(cb1);
     expect(onLastUnsubscribe).not.toHaveBeenCalled();
     sub.subscribe(cb1);
@@ -490,8 +491,8 @@ test('Basic channel', () => {
   const chan1 = sub.channel('chan1');
   const chan2 = sub.channel('chan2');
 
-  const cb1 = jest.fn();
-  const cb2 = jest.fn();
+  const cb1 = vi.fn();
+  const cb2 = vi.fn();
 
   chan1.subscribe(cb1);
   chan2.subscribe(cb2);
@@ -514,9 +515,9 @@ test('Create channel with same value', () => {
   const chan2 = sub.channel('chan2');
   const chan1bis = sub.channel('chan1');
 
-  const cb1 = jest.fn();
-  const cb2 = jest.fn();
-  const cb1bis = jest.fn();
+  const cb1 = vi.fn();
+  const cb2 = vi.fn();
+  const cb1bis = vi.fn();
 
   chan1.subscribe(cb1);
   chan2.subscribe(cb2);
@@ -541,9 +542,9 @@ test('Unsub all from channel', () => {
   const chan1 = sub.channel('chan1');
   const chan2 = sub.channel('chan2');
 
-  const cb1a = jest.fn();
-  const cb1b = jest.fn();
-  const cb2 = jest.fn();
+  const cb1a = vi.fn();
+  const cb1b = vi.fn();
+  const cb2 = vi.fn();
 
   chan1.subscribe(cb1a);
   chan1.subscribe(cb1b);
@@ -567,11 +568,11 @@ test('Unsub all from channel', () => {
 test('Subscribe in onUnsubscribe should also unsubscribe', () => {
   const sub = Suub.createSubscription<number>();
 
-  const cb2 = jest.fn();
-  const cb1 = jest.fn();
+  const cb2 = vi.fn();
+  const cb1 = vi.fn();
 
-  const unsubCb1 = jest.fn(() => sub.subscribe(cb2, unsubCb2));
-  const unsubCb2 = jest.fn();
+  const unsubCb1 = vi.fn(() => sub.subscribe(cb2, unsubCb2));
+  const unsubCb2 = vi.fn();
 
   sub.subscribe(cb1, unsubCb1);
 
@@ -586,11 +587,11 @@ test('Subscribe in onUnsubscribe should also unsubscribe', () => {
 test('Subscribe in onUnsubscribe + unsubscribeAll', () => {
   const sub = Suub.createSubscription<number>();
 
-  const cb2 = jest.fn();
-  const cb1 = jest.fn();
-  const unsubCb2 = jest.fn();
+  const cb2 = vi.fn();
+  const cb1 = vi.fn();
+  const unsubCb2 = vi.fn();
 
-  const unsubCb1 = jest.fn(() => {
+  const unsubCb1 = vi.fn(() => {
     sub.subscribe(cb2, unsubCb2);
   });
 
@@ -607,8 +608,8 @@ test('Subscribe in onUnsubscribe + unsubscribeAll', () => {
 test('Subscribe in onUnsubscribe loop should throw', () => {
   const sub = Suub.createSubscription<number>();
 
-  const cb1 = jest.fn();
-  const unsubCb1 = jest.fn(() => {
+  const cb1 = vi.fn();
+  const unsubCb1 = vi.fn(() => {
     sub.subscribe(cb1, unsubCb1);
   });
 
@@ -623,9 +624,9 @@ test('Subscribe in onUnsubscribe loop should throw', () => {
 test('Subscribe in onUnsubscribe multi loop should throw', () => {
   const sub = Suub.createSubscription<number>();
 
-  const cb1 = jest.fn();
-  const cb2 = jest.fn();
-  const cb3 = jest.fn();
+  const cb1 = vi.fn();
+  const cb2 = vi.fn();
+  const cb3 = vi.fn();
 
   const unsubCb1 = () => {
     sub.subscribe(cb2, unsubCb2);
@@ -648,7 +649,7 @@ test('Emit in subscribe is deffered', () => {
   const chan1 = sub.createVoidChannel();
   const chan2 = sub.createVoidChannel();
 
-  const cb2 = jest.fn(() => {
+  const cb2 = vi.fn(() => {
     chan1.emit();
   });
 
@@ -656,7 +657,7 @@ test('Emit in subscribe is deffered', () => {
 
   let emited = false;
 
-  const cb1 = jest.fn(() => {
+  const cb1 = vi.fn(() => {
     if (!emited) {
       chan2.emit();
       emited = true;
@@ -674,7 +675,7 @@ test('Emit in subscribe is deffered', () => {
 test('Can emit in deferred', () => {
   const sub = Suub.createSubscription<number>();
 
-  const cb1 = jest.fn();
+  const cb1 = vi.fn();
   sub.subscribe(cb1);
 
   sub.deferred(() => {
