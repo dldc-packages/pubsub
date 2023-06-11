@@ -7,9 +7,17 @@ export type VoidSubscriptionCallback = () => void;
 export type UnsubscribeAllMethod = () => void;
 
 export type SubscribeMethod<T> = (callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
-export type SubscribeByIdMethod<T> = (subId: string, callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
+export type SubscribeByIdMethod<T> = (
+  subId: string,
+  callback: SubscriptionCallback<T>,
+  onUnsubscribe?: OnUnsubscribed
+) => Unsubscribe;
 export type VoidSubscribeMethod = (callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
-export type VoidSubscribeByIdMethod = (subId: string, callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
+export type VoidSubscribeByIdMethod = (
+  subId: string,
+  callback: VoidSubscriptionCallback,
+  onUnsubscribe?: OnUnsubscribed
+) => Unsubscribe;
 
 export type IsSubscribedMethod<T> = (callback: SubscriptionCallback<T>) => boolean;
 export type IsSubscribedByIdMethod = (subId: string) => boolean;
@@ -170,7 +178,11 @@ export const Suub = (() => {
         return subscribeInternal(channel, callback, null, onUnsubscribe);
       }
 
-      function subscribeById(subId: string, callback: SubscriptionCallback<Data>, onUnsubscribe?: OnUnsubscribed): Unsubscribe {
+      function subscribeById(
+        subId: string,
+        callback: SubscriptionCallback<Data>,
+        onUnsubscribe?: OnUnsubscribed
+      ): Unsubscribe {
         return subscribeInternal(channel, callback, subId, onUnsubscribe);
       }
 
@@ -266,7 +278,11 @@ export const Suub = (() => {
           safe--;
           // cannot be undefined because length > 0
           const subItem = nextSubscriptions.shift()!;
-          if (subItem.channel === DEFAULT_CHANNEL || emitItem.channel === DEFAULT_CHANNEL || subItem.channel === emitItem.channel) {
+          if (
+            subItem.channel === DEFAULT_CHANNEL ||
+            emitItem.channel === DEFAULT_CHANNEL ||
+            subItem.channel === emitItem.channel
+          ) {
             subItem.callback(emitItem.value);
           }
         }
@@ -350,13 +366,17 @@ export const Suub = (() => {
           return;
         }
         isSubscribed = false;
-        const index = subscriptions.findIndex((i) => (channel === DEFAULT_CHANNEL || i.channel === channel) && i.callback === callback);
+        const index = subscriptions.findIndex(
+          (i) => (channel === DEFAULT_CHANNEL || i.channel === channel) && i.callback === callback
+        );
 
         // isSubscribed is true but the callback is not in the list
         // this should not happend but if it does we ignore the unsub
         /* istanbul ignore next */
         if (index === -1) {
-          console.warn(`Subscribe (isSubscribed === true) callback is not in the subscriptions list. Please report a bug.`);
+          console.warn(
+            `Subscribe (isSubscribed === true) callback is not in the subscriptions list. Please report a bug.`
+          );
           return;
         }
         const item = subscriptions[index];
@@ -392,12 +412,14 @@ export const Suub = (() => {
 })();
 
 export const SuubErreur = {
-  SubscriptionDestroyed: Erreur.declare<null>('SubscriptionDestroyed', () => `The subscription has been destroyed`).withTransform(
-    () => null
-  ),
+  SubscriptionDestroyed: Erreur.declare<null>(
+    'SubscriptionDestroyed',
+    () => `The subscription has been destroyed`
+  ).withTransform(() => null),
   MaxSubscriptionCountReached: Erreur.declare<null>(
     'MaxSubscriptionCountReached',
-    () => `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`
+    () =>
+      `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`
   ).withTransform(() => null),
   MaxRecursiveEmitReached: Erreur.declare<{ limit: number }>(
     'MaxRecursiveEmitReached',
@@ -409,5 +431,7 @@ export const SuubErreur = {
     ({ limit }) =>
       `The maxUnsubscribeAllLoop limit (${limit}) has been reached, did you call subscribe() in the onUnsubscribe callback then called unsubscribeAll ? If this is expected you can use the maxUnsubscribeAllLoop option to raise the limit`
   ).withTransform((limit: number) => ({ limit })),
-  InvalidCallback: Erreur.declare<null>('InvalidCallback', () => `The callback is not a function`).withTransform(() => null),
+  InvalidCallback: Erreur.declare<null>('InvalidCallback', () => `The callback is not a function`).withTransform(
+    () => null
+  ),
 };
