@@ -1,5 +1,5 @@
 {
-  "name": "suub",
+  "name": "@dldc/pubsub",
   "version": "5.1.2",
   "description": "A simple pub/sub written in Typescript",
   "keywords": [
@@ -8,13 +8,13 @@
     "pubsub",
     "typescript"
   ],
-  "homepage": "https://github.com/etienne-dldc/suub#readme",
+  "homepage": "https://github.com/dldc-packages/pubsub#readme",
   "bugs": {
-    "url": "https://github.com/etienne-dldc/suub/issues"
+    "url": "https://github.com/dldc-packages/pubsub/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/etienne-dldc/suub.git"
+    "url": "git+https://github.com/dldc-packages/pubsub.git"
   },
   "license": "MIT",
   "author": "Etienne Dldc <e.deladonchamps@gmail.com>",
