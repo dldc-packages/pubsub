@@ -1,4 +1,4 @@
-import { Erreur } from 'erreur';
+import { ErreurType } from '@dldc/erreur';
 
 export type Unsubscribe = () => void;
 export type OnUnsubscribed = () => void;
@@ -412,26 +412,39 @@ export const Suub = (() => {
 })();
 
 export const SuubErreur = {
-  SubscriptionDestroyed: Erreur.declare<null>(
-    'SubscriptionDestroyed',
-    () => `The subscription has been destroyed`
-  ).withTransform(() => null),
-  MaxSubscriptionCountReached: Erreur.declare<null>(
-    'MaxSubscriptionCountReached',
-    () =>
-      `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`
-  ).withTransform(() => null),
-  MaxRecursiveEmitReached: Erreur.declare<{ limit: number }>(
+  SubscriptionDestroyed: ErreurType.defineEmpty('SubscriptionDestroyed', (err, provider) => {
+    return err.with(provider).withMessage(`The subscription has been destroyed`);
+  }),
+  MaxSubscriptionCountReached: ErreurType.defineEmpty('MaxSubscriptionCountReached', (err, provider) => {
+    return err
+      .with(provider)
+      .withMessage(
+        `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`
+      );
+  }),
+  MaxRecursiveEmitReached: ErreurType.defineWithTransform(
     'MaxRecursiveEmitReached',
-    ({ limit }) =>
-      `The maxRecursiveEmit limit (${limit}) has been reached, did you emit() in a callback ? If this is expected you can use the maxRecursiveEmit option to raise the limit`
-  ).withTransform((limit: number) => ({ limit })),
-  MaxUnsubscribeAllLoopReached: Erreur.declare<{ limit: number }>(
-    'MaxUnsubscribeAllLoopReached',
-    ({ limit }) =>
-      `The maxUnsubscribeAllLoop limit (${limit}) has been reached, did you call subscribe() in the onUnsubscribe callback then called unsubscribeAll ? If this is expected you can use the maxUnsubscribeAllLoop option to raise the limit`
-  ).withTransform((limit: number) => ({ limit })),
-  InvalidCallback: Erreur.declare<null>('InvalidCallback', () => `The callback is not a function`).withTransform(
-    () => null
+    (limit: number): { limit: number } => ({ limit }),
+    (err, provider, { limit }) => {
+      return err
+        .with(provider)
+        .withMessage(
+          `The maxRecursiveEmit limit (${limit}) has been reached, did you emit() in a callback ? If this is expected you can use the maxRecursiveEmit option to raise the limit`
+        );
+    }
   ),
+  MaxUnsubscribeAllLoopReached: ErreurType.defineWithTransform(
+    'MaxUnsubscribeAllLoopReached',
+    (limit: number): { limit: number } => ({ limit }),
+    (err, provider, { limit }) => {
+      return err
+        .with(provider)
+        .withMessage(
+          `The maxUnsubscribeAllLoop limit (${limit}) has been reached, did you call subscribe() in the onUnsubscribe callback then called unsubscribeAll ? If this is expected you can use the maxUnsubscribeAllLoop option to raise the limit`
+        );
+    }
+  ),
+  InvalidCallback: ErreurType.defineEmpty('InvalidCallback', (err, provider) => {
+    return err.with(provider).withMessage(`The callback is not a function`);
+  }),
 };
