@@ -105,7 +105,7 @@ subscription.subscribe(
   },
   () => {
     console.log('Unsubscribed !');
-  }
+  },
 );
 
 // or with a subId
@@ -116,7 +116,7 @@ subscription.subscribeById(
   },
   () => {
     console.log('Unsubscribed !');
-  }
+  },
 );
 ```
 

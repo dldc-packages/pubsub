@@ -10,13 +10,13 @@ export type SubscribeMethod<T> = (callback: SubscriptionCallback<T>, onUnsubscri
 export type SubscribeByIdMethod<T> = (
   subId: string,
   callback: SubscriptionCallback<T>,
-  onUnsubscribe?: OnUnsubscribed
+  onUnsubscribe?: OnUnsubscribed,
 ) => Unsubscribe;
 export type VoidSubscribeMethod = (callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed) => Unsubscribe;
 export type VoidSubscribeByIdMethod = (
   subId: string,
   callback: VoidSubscriptionCallback,
-  onUnsubscribe?: OnUnsubscribed
+  onUnsubscribe?: OnUnsubscribed,
 ) => Unsubscribe;
 
 export type IsSubscribedMethod<T> = (callback: SubscriptionCallback<T>) => boolean;
@@ -181,7 +181,7 @@ export const Suub = (() => {
       function subscribeById(
         subId: string,
         callback: SubscriptionCallback<Data>,
-        onUnsubscribe?: OnUnsubscribed
+        onUnsubscribe?: OnUnsubscribed,
       ): Unsubscribe {
         return subscribeInternal(channel, callback, subId, onUnsubscribe);
       }
@@ -321,7 +321,7 @@ export const Suub = (() => {
       channel: Channel | typeof DEFAULT_CHANNEL,
       callback: SubscriptionCallback<Data>,
       subId: string | null,
-      onUnsubscribe: OnUnsubscribed | undefined
+      onUnsubscribe: OnUnsubscribed | undefined,
     ): Unsubscribe {
       if (destroyed) {
         throw SuubErreur.SubscriptionDestroyed.create();
@@ -367,7 +367,7 @@ export const Suub = (() => {
         }
         isSubscribed = false;
         const index = subscriptions.findIndex(
-          (i) => (channel === DEFAULT_CHANNEL || i.channel === channel) && i.callback === callback
+          (i) => (channel === DEFAULT_CHANNEL || i.channel === channel) && i.callback === callback,
         );
 
         // isSubscribed is true but the callback is not in the list
@@ -375,7 +375,7 @@ export const Suub = (() => {
         /* istanbul ignore next */
         if (index === -1) {
           console.warn(
-            `Subscribe (isSubscribed === true) callback is not in the subscriptions list. Please report a bug.`
+            `Subscribe (isSubscribed === true) callback is not in the subscriptions list. Please report a bug.`,
           );
           return;
         }
@@ -399,7 +399,7 @@ export const Suub = (() => {
     function findSubscription(
       channel: Channel | typeof DEFAULT_CHANNEL,
       subId: string | null,
-      callback?: SubscriptionCallback<any>
+      callback?: SubscriptionCallback<any>,
     ): SubscriptionItem<Data, Channel> | undefined {
       return subscriptions.find((item) => {
         if (channel !== DEFAULT_CHANNEL && item.channel !== channel) {
@@ -419,7 +419,7 @@ export const SuubErreur = {
     return err
       .with(provider)
       .withMessage(
-        `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`
+        `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`,
       );
   }),
   MaxRecursiveEmitReached: ErreurType.defineWithTransform(
@@ -429,9 +429,9 @@ export const SuubErreur = {
       return err
         .with(provider)
         .withMessage(
-          `The maxRecursiveEmit limit (${limit}) has been reached, did you emit() in a callback ? If this is expected you can use the maxRecursiveEmit option to raise the limit`
+          `The maxRecursiveEmit limit (${limit}) has been reached, did you emit() in a callback ? If this is expected you can use the maxRecursiveEmit option to raise the limit`,
         );
-    }
+    },
   ),
   MaxUnsubscribeAllLoopReached: ErreurType.defineWithTransform(
     'MaxUnsubscribeAllLoopReached',
@@ -440,9 +440,9 @@ export const SuubErreur = {
       return err
         .with(provider)
         .withMessage(
-          `The maxUnsubscribeAllLoop limit (${limit}) has been reached, did you call subscribe() in the onUnsubscribe callback then called unsubscribeAll ? If this is expected you can use the maxUnsubscribeAllLoop option to raise the limit`
+          `The maxUnsubscribeAllLoop limit (${limit}) has been reached, did you call subscribe() in the onUnsubscribe callback then called unsubscribeAll ? If this is expected you can use the maxUnsubscribeAllLoop option to raise the limit`,
         );
-    }
+    },
   ),
   InvalidCallback: ErreurType.defineEmpty('InvalidCallback', (err, provider) => {
     return err.with(provider).withMessage(`The callback is not a function`);
