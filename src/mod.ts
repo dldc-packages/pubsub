@@ -1,4 +1,5 @@
-import { ErreurType } from '@dldc/erreur';
+import type { IKey } from '@dldc/erreur';
+import { Erreur, Key } from '@dldc/erreur';
 
 export type Unsubscribe = () => void;
 export type OnUnsubscribed = () => void;
@@ -411,40 +412,49 @@ export const Suub = (() => {
   }
 })();
 
-export const SuubErreur = {
-  SubscriptionDestroyed: ErreurType.defineEmpty('SubscriptionDestroyed', (err, provider) => {
-    return err.with(provider).withMessage(`The subscription has been destroyed`);
-  }),
-  MaxSubscriptionCountReached: ErreurType.defineEmpty('MaxSubscriptionCountReached', (err, provider) => {
-    return err
-      .with(provider)
-      .withMessage(
-        `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`,
-      );
-  }),
-  MaxRecursiveEmitReached: ErreurType.defineWithTransform(
-    'MaxRecursiveEmitReached',
-    (limit: number): { limit: number } => ({ limit }),
-    (err, provider, { limit }) => {
-      return err
-        .with(provider)
-        .withMessage(
+export const SuubErreur = (() => {
+  const SubscriptionDestroyedKey: IKey<undefined, false, []> = Key.createEmpty('SubscriptionDestroyed');
+  const MaxSubscriptionCountReachedKey: IKey<undefined, false, []> = Key.createEmpty('MaxSubscriptionCountReached');
+  const MaxRecursiveEmitReachedKey: IKey<{ limit: number }, false> = Key.create('MaxRecursiveEmitReached');
+  const MaxUnsubscribeAllLoopReachedKey: IKey<{ limit: number }, false> = Key.create('MaxUnsubscribeAllLoopReached');
+  const InvalidCallbackKey: IKey<undefined, false, []> = Key.createEmpty('InvalidCallback');
+
+  return {
+    SubscriptionDestroyed: {
+      Key: SubscriptionDestroyedKey,
+      create() {
+        return Erreur.createWith(SubscriptionDestroyedKey).withMessage(`The subscription has been destroyed`);
+      },
+    },
+    MaxSubscriptionCountReached: {
+      Key: MaxSubscriptionCountReachedKey,
+      create() {
+        return Erreur.createWith(MaxSubscriptionCountReachedKey).withMessage(
+          `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`,
+        );
+      },
+    },
+    MaxRecursiveEmitReached: {
+      Key: MaxRecursiveEmitReachedKey,
+      create(limit: number) {
+        return Erreur.createWith(MaxRecursiveEmitReachedKey, { limit }).withMessage(
           `The maxRecursiveEmit limit (${limit}) has been reached, did you emit() in a callback ? If this is expected you can use the maxRecursiveEmit option to raise the limit`,
         );
+      },
     },
-  ),
-  MaxUnsubscribeAllLoopReached: ErreurType.defineWithTransform(
-    'MaxUnsubscribeAllLoopReached',
-    (limit: number): { limit: number } => ({ limit }),
-    (err, provider, { limit }) => {
-      return err
-        .with(provider)
-        .withMessage(
+    MaxUnsubscribeAllLoopReached: {
+      Key: MaxUnsubscribeAllLoopReachedKey,
+      create(limit: number) {
+        return Erreur.createWith(MaxUnsubscribeAllLoopReachedKey, { limit }).withMessage(
           `The maxUnsubscribeAllLoop limit (${limit}) has been reached, did you call subscribe() in the onUnsubscribe callback then called unsubscribeAll ? If this is expected you can use the maxUnsubscribeAllLoop option to raise the limit`,
         );
+      },
     },
-  ),
-  InvalidCallback: ErreurType.defineEmpty('InvalidCallback', (err, provider) => {
-    return err.with(provider).withMessage(`The callback is not a function`);
-  }),
-};
+    InvalidCallback: {
+      Key: InvalidCallbackKey,
+      create() {
+        return Erreur.createWith(InvalidCallbackKey).withMessage(`The callback is not a function`);
+      },
+    },
+  };
+})();
