@@ -1,4 +1,4 @@
-import type { IKey } from '@dldc/erreur';
+import type { TKey, TVoidKey } from '@dldc/erreur';
 import { Erreur, Key } from '@dldc/erreur';
 
 export type Unsubscribe = () => void;
@@ -413,11 +413,11 @@ export const Suub = (() => {
 })();
 
 export const SuubErreur = (() => {
-  const SubscriptionDestroyedKey: IKey<undefined, false, []> = Key.createEmpty('SubscriptionDestroyed');
-  const MaxSubscriptionCountReachedKey: IKey<undefined, false, []> = Key.createEmpty('MaxSubscriptionCountReached');
-  const MaxRecursiveEmitReachedKey: IKey<{ limit: number }, false> = Key.create('MaxRecursiveEmitReached');
-  const MaxUnsubscribeAllLoopReachedKey: IKey<{ limit: number }, false> = Key.create('MaxUnsubscribeAllLoopReached');
-  const InvalidCallbackKey: IKey<undefined, false, []> = Key.createEmpty('InvalidCallback');
+  const SubscriptionDestroyedKey: TVoidKey = Key.createEmpty('SubscriptionDestroyed');
+  const MaxSubscriptionCountReachedKey: TVoidKey = Key.createEmpty('MaxSubscriptionCountReached');
+  const MaxRecursiveEmitReachedKey: TKey<{ limit: number }> = Key.create('MaxRecursiveEmitReached');
+  const MaxUnsubscribeAllLoopReachedKey: TKey<{ limit: number }> = Key.create('MaxUnsubscribeAllLoopReached');
+  const InvalidCallbackKey: TVoidKey = Key.createEmpty('InvalidCallback');
 
   return {
     SubscriptionDestroyed: {
