@@ -95,7 +95,7 @@ export interface ISubscriptionOptions {
   maxUnsubscribeAllLoop?: number;
 }
 
-export const Suub = (() => {
+export const PubSub = (() => {
   interface SubscriptionItem<Data, Channel> {
     channel: Channel | typeof DEFAULT_CHANNEL;
     callback: SubscriptionCallback<Data>;
@@ -248,7 +248,7 @@ export const Suub = (() => {
 
     function emitInternal(channel: Channel | typeof DEFAULT_CHANNEL, newValue: Data): void {
       if (destroyed) {
-        throw SuubErreur.SubscriptionDestroyed.create();
+        throw PubSubErreur.SubscriptionDestroyed.create();
       }
       emitQueue.push({ value: newValue, channel });
       if (isEmitting) {
@@ -289,12 +289,12 @@ export const Suub = (() => {
         }
         if (safe <= 0) {
           isEmitting = false;
-          throw SuubErreur.MaxSubscriptionCountReached.create();
+          throw PubSubErreur.MaxSubscriptionCountReached.create();
         }
       }
       isEmitting = false;
       if (emitQueueSafe <= 0) {
-        throw SuubErreur.MaxRecursiveEmitReached.create(maxRecursiveEmit);
+        throw PubSubErreur.MaxRecursiveEmitReached.create(maxRecursiveEmit);
       }
     }
 
@@ -312,7 +312,7 @@ export const Suub = (() => {
         nextItem.unsubscribe();
       }
       if (safe <= 0) {
-        throw SuubErreur.MaxUnsubscribeAllLoopReached.create(maxUnsubscribeAllLoop);
+        throw PubSubErreur.MaxUnsubscribeAllLoopReached.create(maxUnsubscribeAllLoop);
       }
       // Note: we don't need to clear the emit queue because the unsubscribe() will take care of it
       return;
@@ -325,11 +325,11 @@ export const Suub = (() => {
       onUnsubscribe: OnUnsubscribed | undefined,
     ): Unsubscribe {
       if (destroyed) {
-        throw SuubErreur.SubscriptionDestroyed.create();
+        throw PubSubErreur.SubscriptionDestroyed.create();
       }
 
       if (typeof callback !== 'function') {
-        throw SuubErreur.InvalidCallback.create();
+        throw PubSubErreur.InvalidCallback.create();
       }
 
       const alreadySubscribed = findSubscription(channel, subId, callback);
@@ -412,7 +412,7 @@ export const Suub = (() => {
   }
 })();
 
-export const SuubErreur = (() => {
+export const PubSubErreur = (() => {
   const SubscriptionDestroyedKey: TVoidKey = Key.createEmpty('SubscriptionDestroyed');
   const MaxSubscriptionCountReachedKey: TVoidKey = Key.createEmpty('MaxSubscriptionCountReached');
   const MaxRecursiveEmitReachedKey: TKey<{ limit: number }> = Key.create('MaxRecursiveEmitReached');
@@ -423,37 +423,45 @@ export const SuubErreur = (() => {
     SubscriptionDestroyed: {
       Key: SubscriptionDestroyedKey,
       create() {
-        return Erreur.createWith(SubscriptionDestroyedKey).withMessage(`The subscription has been destroyed`);
+        return Erreur.create(new Error('The subscription has been destroyed')).with(
+          SubscriptionDestroyedKey.Provider(),
+        );
       },
     },
     MaxSubscriptionCountReached: {
       Key: MaxSubscriptionCountReachedKey,
       create() {
-        return Erreur.createWith(MaxSubscriptionCountReachedKey).withMessage(
-          `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`,
-        );
+        return Erreur.create(
+          new Error(
+            `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`,
+          ),
+        ).with(MaxSubscriptionCountReachedKey.Provider());
       },
     },
     MaxRecursiveEmitReached: {
       Key: MaxRecursiveEmitReachedKey,
       create(limit: number) {
-        return Erreur.createWith(MaxRecursiveEmitReachedKey, { limit }).withMessage(
-          `The maxRecursiveEmit limit (${limit}) has been reached, did you emit() in a callback ? If this is expected you can use the maxRecursiveEmit option to raise the limit`,
-        );
+        return Erreur.create(
+          new Error(
+            `The maxRecursiveEmit limit (${limit}) has been reached, did you emit() in a callback ? If this is expected you can use the maxRecursiveEmit option to raise the limit`,
+          ),
+        ).with(MaxRecursiveEmitReachedKey.Provider({ limit }));
       },
     },
     MaxUnsubscribeAllLoopReached: {
       Key: MaxUnsubscribeAllLoopReachedKey,
       create(limit: number) {
-        return Erreur.createWith(MaxUnsubscribeAllLoopReachedKey, { limit }).withMessage(
-          `The maxUnsubscribeAllLoop limit (${limit}) has been reached, did you call subscribe() in the onUnsubscribe callback then called unsubscribeAll ? If this is expected you can use the maxUnsubscribeAllLoop option to raise the limit`,
-        );
+        return Erreur.create(
+          new Error(
+            `The maxUnsubscribeAllLoop limit (${limit}) has been reached, did you call subscribe() in the onUnsubscribe callback then called unsubscribeAll ? If this is expected you can use the maxUnsubscribeAllLoop option to raise the limit`,
+          ),
+        ).with(MaxUnsubscribeAllLoopReachedKey.Provider({ limit }));
       },
     },
     InvalidCallback: {
       Key: InvalidCallbackKey,
       create() {
-        return Erreur.createWith(InvalidCallbackKey).withMessage(`The callback is not a function`);
+        return Erreur.create(new Error(`The callback is not a function`)).with(InvalidCallbackKey.Provider());
       },
     },
   };

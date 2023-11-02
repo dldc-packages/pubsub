@@ -1,17 +1,21 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/etienne-dldc/suub/main/design/logo.png" width="597" alt="suub logo">
+  <img src="https://raw.githubusercontent.com/dldc-packages/pubsub/main/design/logo.png" width="597" alt="pubsub logo">
 </p>
 
-# 📫 Suub
+# 📫 PubSub
 
 > A simple pub/sub written in Typescript
+
+```
+npm install @dldc/pubsub
+```
 
 ## Gist
 
 ```ts
-import { Suub } from 'suub';
+import { PubSub } from '@dldc/pubsub';
 
-const mySub = Suub.createSubscription<number>();
+const mySub = PubSub.createSubscription<number>();
 
 const unsub = mySub.subscribe((num) => {
   console.log('num: ' + num);
@@ -26,28 +30,28 @@ unsub();
 
 ### Creating a Subscription
 
-To create a `Subscription` you need to import the `Suub.createSubscription` function and call it.
+To create a `Subscription` you need to import the `PubSub.createSubscription` function and call it.
 
 ```ts
-import { Suub } from 'suub';
+import { PubSub } from '@dldc/pubsub';
 
-const subscription = Suub.createSubscription();
+const subscription = PubSub.createSubscription();
 ```
 
-If you use TypeScript, you need to pass a type parameter to the `Suub.createSubscription` function to define the type of the value associated with the subscription.
+If you use TypeScript, you need to pass a type parameter to the `PubSub.createSubscription` function to define the type of the value associated with the subscription.
 
 ```ts
-import { Suub } from 'suub';
+import { PubSub } from '@dldc/pubsub';
 
-const numSubscription = Suub.createSubscription<number>();
+const numSubscription = PubSub.createSubscription<number>();
 ```
 
-If you don't want your subscription not to emit any value, you can use the `Suub.createVoidSubscription` function.
+If you don't want your subscription not to emit any value, you can use the `PubSub.createVoidSubscription` function.
 
 ```ts
-import { Suub } from 'suub';
+import { PubSub } from '@dldc/pubsub';
 
-const voidSubscription = Suub.createVoidSubscription();
+const voidSubscription = PubSub.createVoidSubscription();
 ```
 
 ### Subscribe and Unsubscribe
@@ -238,10 +242,6 @@ This is a no-op, it will not call `onDestroy` again.
 #### The subscription is already considered destroyed when `onDestroy` is called
 
 This means that you can't call `emit` or `subscribe` in the `onDestroy` callback and that `isDestroyed` will return `true` in the `onDestroy` callback.
-
-## Examples
-
-Take a look at the [Examples folder](https://github.com/etienne-dldc/suub/tree/master/examples).
 
 ## API
 
