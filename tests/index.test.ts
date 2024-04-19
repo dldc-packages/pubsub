@@ -1,8 +1,8 @@
 import { describe, expect, test, vi } from 'vitest';
-import { PubSub } from '../src/mod';
+import { createScheduler, createSubscription, createVoidSubscription } from '../src/mod';
 
 test('Basic subscription', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = vi.fn();
   const unsub1 = sub.subscribe(cb1);
   sub.emit(42);
@@ -14,7 +14,7 @@ test('Basic subscription', () => {
 });
 
 test('Basic void subscription', () => {
-  const sub = PubSub.createVoidSubscription();
+  const sub = createVoidSubscription();
   const cb1 = vi.fn();
   const unsub1 = sub.subscribe(cb1);
   sub.emit();
@@ -26,7 +26,7 @@ test('Basic void subscription', () => {
 });
 
 test('Id subscription', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = vi.fn();
   sub.subscribeById('sub1', cb1);
   sub.emit(42);
@@ -38,7 +38,7 @@ test('Id subscription', () => {
 });
 
 test('Ref subscription', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = vi.fn();
   sub.subscribeById('sub1', cb1);
   sub.emit(42);
@@ -50,14 +50,14 @@ test('Ref subscription', () => {
 });
 
 test('IsSubscribe subscription', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = vi.fn();
   sub.subscribe(cb1);
   expect(sub.isSubscribed(cb1)).toBe(true);
 });
 
 test('unsub unsubscribed ref does not throw', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = vi.fn();
   expect(sub.isSubscribed(cb1)).toBe(false);
   expect(() => {
@@ -66,7 +66,7 @@ test('unsub unsubscribed ref does not throw', () => {
 });
 
 test('unsub unsubscribed subId does not throw', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   expect(sub.isSubscribedById('my-id')).toBe(false);
   expect(() => {
     sub.unsubscribeById('my-id');
@@ -74,7 +74,7 @@ test('unsub unsubscribed subId does not throw', () => {
 });
 
 test('Resubscribe the same cb twice should work', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = vi.fn();
   sub.subscribe(cb1);
   sub.emit(42);
@@ -86,7 +86,7 @@ test('Resubscribe the same cb twice should work', () => {
 });
 
 test('Resubscribe the same cb twice should move it to the end', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   let callCount = 0;
   const cb1 = vi.fn(() => callCount++);
   const cb2 = vi.fn(() => callCount++);
@@ -109,7 +109,7 @@ test('Resubscribe the same cb twice should move it to the end', () => {
 });
 
 test('Resubscribe the same subId should move it to the end', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = vi.fn();
   const cb2 = vi.fn();
   sub.subscribeById('sub1', cb1);
@@ -123,7 +123,7 @@ test('Resubscribe the same subId should move it to the end', () => {
 });
 
 test('Unsub twice with a subId should not throw an error', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = vi.fn();
   const unsub = sub.subscribeById('sub1', cb1);
   unsub();
@@ -133,7 +133,7 @@ test('Unsub twice with a subId should not throw an error', () => {
 });
 
 test('Unsub twice with a subId using sub.unsubscribe should not throw an error', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = vi.fn();
   sub.subscribeById('sub1', cb1);
   sub.unsubscribeById('sub1');
@@ -144,7 +144,7 @@ test('Unsub twice with a subId using sub.unsubscribe should not throw an error',
 });
 
 test('Unsub twice with a cb should not throw an error', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = vi.fn();
   const unsub = sub.subscribe(cb1);
   unsub();
@@ -154,7 +154,7 @@ test('Unsub twice with a cb should not throw an error', () => {
 });
 
 test('If cb remove a callback not called yet it should not call it', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = () => {
     sub.unsubscribe(cb2);
   };
@@ -166,7 +166,7 @@ test('If cb remove a callback not called yet it should not call it', () => {
 });
 
 test('If a cb remove a callback by subId not called yet it should not call it', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = () => {
     sub.unsubscribeById('sub2');
   };
@@ -179,7 +179,7 @@ test('If a cb remove a callback by subId not called yet it should not call it', 
 });
 
 test('If cb remove a callback already called it should not skip cb', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = vi.fn();
   const cb2 = vi.fn(() => {
     sub.unsubscribe(cb1);
@@ -198,7 +198,7 @@ test('If cb remove a callback already called it should not skip cb', () => {
 });
 
 test('adding a callback in a cb should not call it until the next call()', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = vi.fn();
   const cb2 = vi.fn(() => {
     sub.subscribe(cb3);
@@ -217,7 +217,7 @@ test('adding a callback in a cb should not call it until the next call()', () =>
 });
 
 test('calling unsubscribeAll should work', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = vi.fn();
   const cb2 = vi.fn();
   const cb3 = vi.fn();
@@ -235,7 +235,7 @@ test('calling unsubscribeAll should work', () => {
 });
 
 test('subscribing twice the same callback with subId should return the same unsub', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = vi.fn();
   const unsub1 = sub.subscribeById('sub', cb1);
   const unsub2 = sub.subscribeById('sub', cb1);
@@ -243,7 +243,7 @@ test('subscribing twice the same callback with subId should return the same unsu
 });
 
 test('not passing a function as callback should throw an error', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   expect(() => {
     sub.subscribe(42 as any);
   }).toThrow();
@@ -252,7 +252,7 @@ test('not passing a function as callback should throw an error', () => {
 test('onFirstSubscription and onLastUnsubscribe', () => {
   const onFirst = vi.fn();
   const onLast = vi.fn();
-  const sub = PubSub.createSubscription<number>({
+  const sub = createSubscription<number>({
     onFirstSubscription: onFirst,
     onLastUnsubscribe: onLast,
   });
@@ -276,7 +276,7 @@ test('onFirstSubscription and onLastUnsubscribe', () => {
 });
 
 test('calling unsubscribeAll inside a cb should stop all the other', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = vi.fn(() => {
     sub.unsubscribeAll();
   });
@@ -295,7 +295,7 @@ test('calling unsubscribeAll inside a cb should stop all the other', () => {
 });
 
 test('Calling call in a callback should throw because of inifnite loop', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   let val = 0;
   const cb1 = vi.fn(() => {
     sub.emit(val++);
@@ -305,7 +305,7 @@ test('Calling call in a callback should throw because of inifnite loop', () => {
 });
 
 test('maxRecursiveEmit', () => {
-  const sub = PubSub.createSubscription<number>({ maxRecursiveEmit: 10 });
+  const sub = createSubscription<number>({ maxRecursiveEmit: 10 });
   const cb1 = vi.fn((val) => {
     if (val > 0) {
       sub.emit(val - 1);
@@ -317,7 +317,7 @@ test('maxRecursiveEmit', () => {
 });
 
 test('maxSubscriptionCount limit the number of subscriptions', () => {
-  const sub = PubSub.createVoidSubscription({ maxSubscriptionCount: 5 });
+  const sub = createVoidSubscription({ maxSubscriptionCount: 5 });
   sub.subscribe(() => {});
   sub.subscribe(() => {});
   sub.subscribe(() => {});
@@ -328,7 +328,7 @@ test('maxSubscriptionCount limit the number of subscriptions', () => {
 });
 
 test('Calling call conditinally in a callback should defer the call', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   let count = 0;
   const cb1 = vi.fn((val) => {
     if (val === 0) {
@@ -354,7 +354,7 @@ test('Calling call conditinally in a callback should defer the call', () => {
 });
 
 test('Sub.size() returns the number of subscriptions', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   expect(sub.size()).toBe(0);
   const unsub1 = sub.subscribe(() => {});
   expect(sub.size()).toBe(1);
@@ -374,7 +374,7 @@ test('Sub.size() returns the number of subscriptions', () => {
 });
 
 test('OnUnsubscribe is called when unsubscribe is called', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const onUnsub = vi.fn();
   const unsub = sub.subscribe(() => {}, onUnsub);
   expect(onUnsub).not.toHaveBeenCalled();
@@ -385,7 +385,7 @@ test('OnUnsubscribe is called when unsubscribe is called', () => {
 });
 
 test('OnUnsubscribe is called when sub.unsubscribe is called', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const onUnsub = vi.fn();
   const cb = () => {};
   sub.subscribe(cb, onUnsub);
@@ -395,7 +395,7 @@ test('OnUnsubscribe is called when sub.unsubscribe is called', () => {
 });
 
 test('OnUnsubscribe is called when sub.unsubscribeAll is called', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const onUnsub = vi.fn();
   sub.subscribe(() => {}, onUnsub);
   expect(onUnsub).not.toHaveBeenCalled();
@@ -404,7 +404,7 @@ test('OnUnsubscribe is called when sub.unsubscribeAll is called', () => {
 });
 
 test('Resubscribing with different onUnsub should update the onUnsub', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const onUnsub1 = vi.fn();
   const onUnsub2 = vi.fn();
   const cb = () => {};
@@ -418,7 +418,7 @@ test('Resubscribing with different onUnsub should update the onUnsub', () => {
 });
 
 test('Cannot subscribe or emit once destroyed', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   sub.destroy();
   expect(() => sub.isDestroyed()).toBeTruthy();
   expect(() => sub.emit(42)).toThrow(/destroyed/);
@@ -426,14 +426,14 @@ test('Cannot subscribe or emit once destroyed', () => {
 });
 
 test('Destroy twice should not throw', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   sub.destroy();
   expect(() => sub.destroy()).not.toThrow();
 });
 
 test('onDestroy is called when destroy is called', () => {
   const onDestroy = vi.fn();
-  const sub = PubSub.createSubscription<number>({ onDestroy });
+  const sub = createSubscription<number>({ onDestroy });
   expect(onDestroy).not.toHaveBeenCalled();
   sub.destroy();
   expect(onDestroy).toHaveBeenCalledTimes(1);
@@ -443,7 +443,7 @@ test('onDestroy is called when destroy is called', () => {
 });
 
 test('resubscribing subid should update the callback', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
   const cb1 = vi.fn();
   const cb2 = vi.fn();
   const subid = 'subid';
@@ -462,7 +462,7 @@ test('resubscribing subid should update the callback', () => {
 describe('resubscribing last subscription should not trigger onLastUnsubscribe', () => {
   test('with id subscription', () => {
     const onLastUnsubscribe = vi.fn();
-    const sub = PubSub.createSubscription<number>({
+    const sub = createSubscription<number>({
       onLastUnsubscribe,
     });
     const cb1 = vi.fn();
@@ -474,7 +474,7 @@ describe('resubscribing last subscription should not trigger onLastUnsubscribe',
 
   test('with callback subscription', () => {
     const onLastUnsubscribe = vi.fn();
-    const sub = PubSub.createSubscription<number>({
+    const sub = createSubscription<number>({
       onLastUnsubscribe,
     });
     const cb1 = vi.fn();
@@ -485,11 +485,10 @@ describe('resubscribing last subscription should not trigger onLastUnsubscribe',
   });
 });
 
-test('Basic channel', () => {
-  const sub = PubSub.createSubscription<number>();
-
-  const chan1 = sub.channel('chan1');
-  const chan2 = sub.channel('chan2');
+test('Basic scheduler usage', () => {
+  const scheduler = createScheduler();
+  const chan1 = createSubscription<number>(scheduler);
+  const chan2 = createSubscription<number>(scheduler);
 
   const cb1 = vi.fn();
   const cb2 = vi.fn();
@@ -508,39 +507,10 @@ test('Basic channel', () => {
   expect(cb2).toHaveBeenCalledWith(21);
 });
 
-test('Create channel with same value', () => {
-  const sub = PubSub.createSubscription<number>();
-
-  const chan1 = sub.channel('chan1');
-  const chan2 = sub.channel('chan2');
-  const chan1bis = sub.channel('chan1');
-
-  const cb1 = vi.fn();
-  const cb2 = vi.fn();
-  const cb1bis = vi.fn();
-
-  chan1.subscribe(cb1);
-  chan2.subscribe(cb2);
-  chan1bis.subscribe(cb1bis);
-
-  chan1.emit(42);
-  expect(cb1).toHaveBeenCalledTimes(1);
-  expect(cb1).toHaveBeenCalledWith(42);
-  expect(cb2).not.toHaveBeenCalled();
-  expect(cb1bis).toHaveBeenCalledTimes(1);
-  expect(cb1bis).toHaveBeenCalledWith(42);
-
-  chan2.emit(21);
-  expect(cb1).toHaveBeenCalledTimes(1);
-  expect(cb2).toHaveBeenCalledTimes(1);
-  expect(cb2).toHaveBeenCalledWith(21);
-});
-
-test('Unsub all from channel', () => {
-  const sub = PubSub.createSubscription<number>();
-
-  const chan1 = sub.channel('chan1');
-  const chan2 = sub.channel('chan2');
+test('Unsub all with scheduler', () => {
+  const scheduler = createScheduler();
+  const chan1 = createSubscription<number>(scheduler);
+  const chan2 = createSubscription<number>(scheduler);
 
   const cb1a = vi.fn();
   const cb1b = vi.fn();
@@ -566,7 +536,7 @@ test('Unsub all from channel', () => {
 });
 
 test('Subscribe in onUnsubscribe should also unsubscribe', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
 
   const cb2 = vi.fn();
   const cb1 = vi.fn();
@@ -585,7 +555,7 @@ test('Subscribe in onUnsubscribe should also unsubscribe', () => {
 });
 
 test('Subscribe in onUnsubscribe + unsubscribeAll', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
 
   const cb2 = vi.fn();
   const cb1 = vi.fn();
@@ -606,7 +576,7 @@ test('Subscribe in onUnsubscribe + unsubscribeAll', () => {
 });
 
 test('Subscribe in onUnsubscribe loop should throw', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
 
   const cb1 = vi.fn();
   const unsubCb1 = vi.fn(() => {
@@ -622,7 +592,7 @@ test('Subscribe in onUnsubscribe loop should throw', () => {
 });
 
 test('Subscribe in onUnsubscribe multi loop should throw', () => {
-  const sub = PubSub.createSubscription<number>();
+  const sub = createSubscription<number>();
 
   const cb1 = vi.fn();
   const cb2 = vi.fn();
@@ -643,11 +613,10 @@ test('Subscribe in onUnsubscribe multi loop should throw', () => {
   expect(() => sub.unsubscribeAll()).toThrow();
 });
 
-test('Emit in subscribe is deffered', () => {
-  const sub = PubSub.createMultiSubscription();
-
-  const chan1 = sub.createVoidChannel();
-  const chan2 = sub.createVoidChannel();
+test('Emit in subscribe is deferred', () => {
+  const scheduler = createScheduler();
+  const chan1 = createVoidSubscription(scheduler);
+  const chan2 = createVoidSubscription(scheduler);
 
   const cb2 = vi.fn(() => {
     chan1.emit();
@@ -672,14 +641,28 @@ test('Emit in subscribe is deffered', () => {
   expect(cb2).toHaveBeenCalledTimes(1);
 });
 
-test('Can emit in deferred', () => {
-  const sub = PubSub.createSubscription<number>();
+test('Emit without batch', () => {
+  const sub = createSubscription<number>();
 
   const cb1 = vi.fn();
   sub.subscribe(cb1);
 
-  sub.deferred(() => {
+  sub.emit(42);
+  expect(cb1).toHaveBeenCalledTimes(1);
+  sub.emit(1);
+
+  expect(cb1).toHaveBeenCalledTimes(2);
+});
+
+test('Can emit in batch', () => {
+  const sub = createSubscription<number>();
+
+  const cb1 = vi.fn();
+  sub.subscribe(cb1);
+
+  sub.batch(() => {
     sub.emit(42);
+    expect(cb1).not.toHaveBeenCalled();
     sub.emit(1);
   });
 

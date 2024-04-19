@@ -13,9 +13,9 @@ npm install @dldc/pubsub
 ## Gist
 
 ```ts
-import { PubSub } from '@dldc/pubsub';
+import { createSubscription } from '@dldc/pubsub';
 
-const mySub = PubSub.createSubscription<number>();
+const mySub = createSubscription<number>();
 
 const unsub = mySub.subscribe((num) => {
   console.log('num: ' + num);
@@ -30,28 +30,28 @@ unsub();
 
 ### Creating a Subscription
 
-To create a `Subscription` you need to import the `PubSub.createSubscription` function and call it.
+To create a `Subscription` you need to import the `createSubscription` function and call it.
 
 ```ts
-import { PubSub } from '@dldc/pubsub';
+import { createSubscription } from '@dldc/pubsub';
 
-const subscription = PubSub.createSubscription();
+const subscription = createSubscription();
 ```
 
-If you use TypeScript, you need to pass a type parameter to the `PubSub.createSubscription` function to define the type of the value associated with the subscription.
+If you use TypeScript, you need to pass a type parameter to the `createSubscription` function to define the type of the value associated with the subscription.
 
 ```ts
-import { PubSub } from '@dldc/pubsub';
+import { createVoidSubscription } from '@dldc/pubsub';
 
-const numSubscription = PubSub.createSubscription<number>();
+const numSubscription = createSubscription<number>();
 ```
 
-If you don't want your subscription not to emit any value, you can use the `PubSub.createVoidSubscription` function.
+If you don't want your subscription to emit any value, you can use the `createVoidSubscription` function.
 
 ```ts
-import { PubSub } from '@dldc/pubsub';
+import { createVoidSubscription } from '@dldc/pubsub';
 
-const voidSubscription = PubSub.createVoidSubscription();
+const voidSubscription = createVoidSubscription();
 ```
 
 ### Subscribe and Unsubscribe
@@ -95,7 +95,7 @@ To emit a value and trigger all subscribed `callback` you need to call the `emit
 ```ts
 subscription.emit(42);
 // for void subscription you don't need to pass any value
-subscription.emit();
+voidSubscription.emit();
 ```
 
 ### OnUnsubscribe
@@ -134,7 +134,7 @@ subscription.unsubscribeAll();
 
 ### `Subscription` options
 
-The `Subscription.create` (or `Subscription.createVoid`) functions accept an option object as parameter (all properties are optional):
+The `createSubscription` (or `createVoidSubscription`) functions accept an option object as parameter (all properties are optional):
 
 ```ts
 const sub = Subscription.create({
@@ -204,12 +204,6 @@ You can check if a subscription is destroyed by calling the `isDestroyed` method
 subscription.isDestroyed(); // <- boolean
 ```
 
-## Channels
-
-```
-// TODO
-```
-
 ## Some precisions
 
 #### Callback are called in the order they are subscribed.
@@ -242,6 +236,44 @@ This is a no-op, it will not call `onDestroy` again.
 #### The subscription is already considered destroyed when `onDestroy` is called
 
 This means that you can't call `emit` or `subscribe` in the `onDestroy` callback and that `isDestroyed` will return `true` in the `onDestroy` callback.
+
+## Scheduler [ADVANCED]
+
+At the core of the `Subscription` is a scheduler that will manage the different callbacks and their order of execution. If you need a single subscription or event multiple that don't interact with each other, you don't need to know about the scheduler. But if you need for example to subscribe to a subscription in the callback of another subscription then keep reading.
+
+### Resuse the same scheduler for multiple subscriptions
+
+You can create a `Scheduler` unsing the `createScheduler` function. You can then pass this scheduler as the first option of the `createSubscription` and `createVoidSubscription` functions.
+
+```ts
+import { createScheduler, createSubscription } from '@dldc/pubsub';
+
+const scheduler = createScheduler();
+
+const sub1 = createSubscription(scheduler);
+const sub2 = createSubscription(scheduler);
+```
+
+Note that the `createScheduler` function accept the same options as the `createSubscription` function. When you pass a scheduler to create a subscription, you can also pass a second argument to specify a `onFirstSubscription` and `onLastUnsubscribe` function specific to this subscription.
+
+```ts
+import { createScheduler, createSubscription } from '@dldc/pubsub';
+
+const scheduler = createScheduler();
+
+const sub1 = createSubscription(scheduler, {
+  onFirstSubscription: () => {
+    console.log('First subscription');
+  },
+  onLastUnsubscribe: () => {
+    console.log('Last unsubscribe');
+  },
+});
+```
+
+### Destrying a scheduler
+
+Note that when you destroy a scheduler, all subscriptions that use this scheduler will be destroyed as well. Calling `.destroy()` on a subscription will actually call `.destroy()` on the scheduler.
 
 ## API
 
