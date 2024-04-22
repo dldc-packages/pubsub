@@ -1,5 +1,4 @@
-import type { TKey, TVoidKey } from '@dldc/erreur';
-import { Erreur, Key } from '@dldc/erreur';
+import { createErreurStore } from '@dldc/erreur';
 
 export type TUnsubscribe = () => void;
 export type TOnUnsubscribed = () => void;
@@ -184,7 +183,7 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
 
   function emit<Data>(subscription: TSubscription<Data>, newValue: Data): void {
     if (destroyed) {
-      throw PubSubErreur.SubscriptionDestroyed.create();
+      return throwSubscriptionDestroyed();
     }
     emitQueue.push({ value: newValue, subscription });
     if (isEmitting) {
@@ -221,12 +220,12 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
       }
       if (safe <= 0) {
         isEmitting = false;
-        throw PubSubErreur.MaxSubscriptionCountReached.create();
+        return throwMaxSubscriptionCountReached();
       }
     }
     isEmitting = false;
     if (emitQueueSafe <= 0) {
-      throw PubSubErreur.MaxRecursiveEmitReached.create(maxRecursiveEmit);
+      return throwMaxRecursiveEmitReached(maxRecursiveEmit);
     }
   }
 
@@ -244,7 +243,7 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
       nextItem.unsubscribe();
     }
     if (safe <= 0) {
-      throw PubSubErreur.MaxUnsubscribeAllLoopReached.create(maxUnsubscribeAllLoop);
+      return throwMaxUnsubscribeAllLoopReached(maxUnsubscribeAllLoop);
     }
     // Note: we don't need to clear the emit queue because the unsubscribe() will take care of it
     return;
@@ -258,11 +257,11 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
     onUnsubscribe: TOnUnsubscribed | undefined,
   ): TUnsubscribe {
     if (destroyed) {
-      throw PubSubErreur.SubscriptionDestroyed.create();
+      return throwSubscriptionDestroyed();
     }
 
     if (typeof callback !== 'function') {
-      throw PubSubErreur.InvalidCallback.create();
+      return throwInvalidCallback();
     }
 
     const alreadySubscribed = findSubscriptionItem(subscription, subId, callback);
@@ -472,57 +471,42 @@ export function isSubscription(subscription: any): subscription is TSubscription
   return subscription[IS_SUBSCRIPTION] === true;
 }
 
-export const PubSubErreur = (() => {
-  const SubscriptionDestroyedKey: TVoidKey = Key.createEmpty('SubscriptionDestroyed');
-  const MaxSubscriptionCountReachedKey: TVoidKey = Key.createEmpty('MaxSubscriptionCountReached');
-  const MaxRecursiveEmitReachedKey: TKey<{ limit: number }> = Key.create('MaxRecursiveEmitReached');
-  const MaxUnsubscribeAllLoopReachedKey: TKey<{ limit: number }> = Key.create('MaxUnsubscribeAllLoopReached');
-  const InvalidCallbackKey: TVoidKey = Key.createEmpty('InvalidCallback');
+export type TPubSubErreurData =
+  | { kind: 'SubscriptionDestroyed' }
+  | { kind: 'MaxSubscriptionCountReached' }
+  | { kind: 'MaxRecursiveEmitReached'; limit: number }
+  | { kind: 'MaxUnsubscribeAllLoopReached'; limit: number }
+  | { kind: 'InvalidCallback' };
 
-  return {
-    SubscriptionDestroyed: {
-      Key: SubscriptionDestroyedKey,
-      create() {
-        return Erreur.create(new Error('The subscription has been destroyed')).with(
-          SubscriptionDestroyedKey.Provider(),
-        );
-      },
-    },
-    MaxSubscriptionCountReached: {
-      Key: MaxSubscriptionCountReachedKey,
-      create() {
-        return Erreur.create(
-          new Error(
-            `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`,
-          ),
-        ).with(MaxSubscriptionCountReachedKey.Provider());
-      },
-    },
-    MaxRecursiveEmitReached: {
-      Key: MaxRecursiveEmitReachedKey,
-      create(limit: number) {
-        return Erreur.create(
-          new Error(
-            `The maxRecursiveEmit limit (${limit}) has been reached, did you emit() in a callback ? If this is expected you can use the maxRecursiveEmit option to raise the limit`,
-          ),
-        ).with(MaxRecursiveEmitReachedKey.Provider({ limit }));
-      },
-    },
-    MaxUnsubscribeAllLoopReached: {
-      Key: MaxUnsubscribeAllLoopReachedKey,
-      create(limit: number) {
-        return Erreur.create(
-          new Error(
-            `The maxUnsubscribeAllLoop limit (${limit}) has been reached, did you call subscribe() in the onUnsubscribe callback then called unsubscribeAll ? If this is expected you can use the maxUnsubscribeAllLoop option to raise the limit`,
-          ),
-        ).with(MaxUnsubscribeAllLoopReachedKey.Provider({ limit }));
-      },
-    },
-    InvalidCallback: {
-      Key: InvalidCallbackKey,
-      create() {
-        return Erreur.create(new Error(`The callback is not a function`)).with(InvalidCallbackKey.Provider());
-      },
-    },
-  };
-})();
+const PubSubErreurInternal = createErreurStore<TPubSubErreurData>();
+
+export const PubSubErreur = PubSubErreurInternal.asReadonly;
+
+function throwSubscriptionDestroyed() {
+  return PubSubErreurInternal.setAndThrow('The subscription has been destroyed', { kind: 'SubscriptionDestroyed' });
+}
+
+function throwMaxSubscriptionCountReached() {
+  return PubSubErreurInternal.setAndThrow(
+    `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`,
+    { kind: 'MaxSubscriptionCountReached' },
+  );
+}
+
+function throwMaxRecursiveEmitReached(limit: number) {
+  return PubSubErreurInternal.setAndThrow(
+    `The maxRecursiveEmit limit (${limit}) has been reached, did you emit() in a callback ? If this is expected you can use the maxRecursiveEmit option to raise the limit`,
+    { kind: 'MaxRecursiveEmitReached', limit },
+  );
+}
+
+function throwMaxUnsubscribeAllLoopReached(limit: number) {
+  return PubSubErreurInternal.setAndThrow(
+    `The maxUnsubscribeAllLoop limit (${limit}) has been reached, did you call subscribe() in the onUnsubscribe callback then called unsubscribeAll ? If this is expected you can use the maxUnsubscribeAllLoop option to raise the limit`,
+    { kind: 'MaxUnsubscribeAllLoopReached', limit },
+  );
+}
+
+function throwInvalidCallback() {
+  return PubSubErreurInternal.setAndThrow('The callback is not a function', { kind: 'InvalidCallback' });
+}
