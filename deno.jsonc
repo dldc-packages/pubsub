@@ -1,6 +1,6 @@
 {
-  "name": "@dldc/mappemonde",
-  "version": "6.0.2",
+  "name": "@dldc/pubsub",
+  "version": "7.0.1",
   "exports": "./mod.ts",
   "imports": {
     "$std/": "https://deno.land/std@0.224.0/",
