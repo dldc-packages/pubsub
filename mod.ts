@@ -1,4 +1,6 @@
-import { createErreurStore } from '@dldc/erreur';
+// deno-lint-ignore-file no-explicit-any
+
+import { createErreurStore, type TErreurStore } from "@dldc/erreur";
 
 export type TUnsubscribe = () => void;
 export type TOnUnsubscribed = () => void;
@@ -6,34 +8,46 @@ export type TSubscriptionCallback<T> = (value: T) => void;
 export type VoidSubscriptionCallback = () => void;
 export type UnsubscribeAllMethod = () => void;
 
-export type SubscribeMethod<T> = (callback: TSubscriptionCallback<T>, onUnsubscribe?: TOnUnsubscribed) => TUnsubscribe;
+export type SubscribeMethod<T> = (
+  callback: TSubscriptionCallback<T>,
+  onUnsubscribe?: TOnUnsubscribed,
+) => TUnsubscribe;
 export type SubscribeByIdMethod<T> = (
   subId: string,
   callback: TSubscriptionCallback<T>,
   onUnsubscribe?: TOnUnsubscribed,
 ) => TUnsubscribe;
-export type VoidSubscribeMethod = (callback: VoidSubscriptionCallback, onUnsubscribe?: TOnUnsubscribed) => TUnsubscribe;
+export type VoidSubscribeMethod = (
+  callback: VoidSubscriptionCallback,
+  onUnsubscribe?: TOnUnsubscribed,
+) => TUnsubscribe;
 export type VoidSubscribeByIdMethod = (
   subId: string,
   callback: VoidSubscriptionCallback,
   onUnsubscribe?: TOnUnsubscribed,
 ) => TUnsubscribe;
 
-export type IsSubscribedMethod<T> = (callback: TSubscriptionCallback<T>) => boolean;
+export type IsSubscribedMethod<T> = (
+  callback: TSubscriptionCallback<T>,
+) => boolean;
 export type IsSubscribedByIdMethod = (subId: string) => boolean;
 
 export type UnsubscribeMethod<T> = (callback: TSubscriptionCallback<T>) => void;
 export type UnsubscribeByIdMethod = (subId: string) => void;
 
-export type VoidIsSubscribedMethod = (callback: VoidSubscriptionCallback) => boolean;
+export type VoidIsSubscribedMethod = (
+  callback: VoidSubscriptionCallback,
+) => boolean;
 export type VoidIsSubscribedByIdMethod = (subId: string) => boolean;
 
-export type VoidUnsubscribeMethod = (callback: VoidSubscriptionCallback) => void;
+export type VoidUnsubscribeMethod = (
+  callback: VoidSubscriptionCallback,
+) => void;
 export type VoidUnsubscribeByIdMethod = (subId: string) => void;
 
 export type BatchMethod = <Result>(callback: () => Result) => Result;
 
-export const IS_SUBSCRIPTION = Symbol('IS_SUBSCRIPTION');
+export const IS_SUBSCRIPTION = Symbol("IS_SUBSCRIPTION");
 
 export interface TSubscription<Data> {
   readonly [IS_SUBSCRIPTION]: true;
@@ -102,14 +116,17 @@ export type TSchedulerUnsubscribe = <Data>(
   callback?: TSubscriptionCallback<Data>,
 ) => void;
 
-export const IS_SCHEDULER = Symbol('IS_SCHEDULER');
+export const IS_SCHEDULER = Symbol("IS_SCHEDULER");
 
 export interface TScheduler {
   readonly [IS_SCHEDULER]: true;
   readonly size: (subscription: TSubscription<any> | null) => number;
   readonly isDestroyed: () => boolean;
   readonly destroy: () => void;
-  readonly emit: <Data>(subscription: TSubscription<Data>, newValue: Data) => void;
+  readonly emit: <Data>(
+    subscription: TSubscription<Data>,
+    newValue: Data,
+  ) => void;
   readonly batch: BatchMethod;
   readonly unsubscribeAll: (subscription: TSubscription<any> | null) => void;
   readonly subscribe: TSchedulerEmit;
@@ -163,7 +180,8 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
     if (!subscription) {
       return subscriptions.length;
     }
-    return subscriptions.filter((sub) => sub.subscription === subscription).length;
+    return subscriptions.filter((sub) => sub.subscription === subscription)
+      .length;
   }
 
   function isDestroyed() {
@@ -235,7 +253,9 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
       if (subscriptions.length === 0) {
         break;
       }
-      const nextItem = subscriptions.find((item) => subscription === null || item.subscription === subscription);
+      const nextItem = subscriptions.find((item) =>
+        subscription === null || item.subscription === subscription
+      );
       if (!nextItem) {
         break;
       }
@@ -260,11 +280,15 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
       return throwSubscriptionDestroyed();
     }
 
-    if (typeof callback !== 'function') {
+    if (typeof callback !== "function") {
       return throwInvalidCallback();
     }
 
-    const alreadySubscribed = findSubscriptionItem(subscription, subId, callback);
+    const alreadySubscribed = findSubscriptionItem(
+      subscription,
+      subId,
+      callback,
+    );
 
     if (alreadySubscribed) {
       if (subId !== null) {
@@ -297,7 +321,9 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
       onFirstSubscription();
     }
     if (subscriptionOptions.onFirstSubscription && subSizeBefore === 0) {
-      const subSizeAfter = subscriptions.filter((i) => i.subscription === subscription).length;
+      const subSizeAfter = subscriptions.filter((i) =>
+        i.subscription === subscription
+      ).length;
       if (subSizeAfter === 1) {
         subscriptionOptions.onFirstSubscription();
       }
@@ -308,7 +334,9 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
         return;
       }
       isSubscribed = false;
-      const index = subscriptions.findIndex((i) => i.subscription === subscription && i.callback === callback);
+      const index = subscriptions.findIndex((i) =>
+        i.subscription === subscription && i.callback === callback
+      );
 
       // isSubscribed is true but the callback is not in the list
       // this should not happend but if it does we ignore the unsub
@@ -324,7 +352,9 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
         ? subscriptions.filter((i) => i.subscription === subscription).length
         : 0;
       subscriptions.splice(index, 1);
-      const queueIndex = nextSubscriptions.findIndex((i) => i.callback === callback);
+      const queueIndex = nextSubscriptions.findIndex((i) =>
+        i.callback === callback
+      );
       if (queueIndex >= 0) {
         nextSubscriptions.splice(queueIndex, 1);
       }
@@ -332,7 +362,9 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
         item.onUnsubscribe();
       }
       if (subscriptionOptions.onLastUnsubscribe && subSizeBefore > 0) {
-        const subSizeAfter = subscriptions.filter((i) => i.subscription === subscription).length;
+        const subSizeAfter = subscriptions.filter((i) =>
+          i.subscription === subscription
+        ).length;
         if (subSizeAfter === 0) {
           subscriptionOptions.onLastUnsubscribe();
         }
@@ -363,7 +395,11 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
     subId: string | null,
     callback?: TSubscriptionCallback<Data>,
   ): boolean {
-    const subscriptionItem = findSubscriptionItem(subscription, subId, callback);
+    const subscriptionItem = findSubscriptionItem(
+      subscription,
+      subId,
+      callback,
+    );
     return subscriptionItem !== undefined;
   }
 
@@ -372,15 +408,24 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
     subId: string | null,
     callback?: TSubscriptionCallback<Data>,
   ): void {
-    const subscriptionItem = findSubscriptionItem(subscription, subId, callback);
+    const subscriptionItem = findSubscriptionItem(
+      subscription,
+      subId,
+      callback,
+    );
     if (subscriptionItem) {
       subscriptionItem.unsubscribe();
     }
   }
 }
 
-export function createVoidSubscription(scheduler?: TSchedulerOptions): TVoidSubscription;
-export function createVoidSubscription(scheduler: TScheduler, options?: TSubscriptionOptions): TVoidSubscription;
+export function createVoidSubscription(
+  scheduler?: TSchedulerOptions,
+): TVoidSubscription;
+export function createVoidSubscription(
+  scheduler: TScheduler,
+  options?: TSubscriptionOptions,
+): TVoidSubscription;
 export function createVoidSubscription(
   scheduler: TSchedulerOptions | TScheduler = {},
   options: TSubscriptionOptions = {},
@@ -388,8 +433,13 @@ export function createVoidSubscription(
   return createSubscriptionInternal<void>(scheduler, options);
 }
 
-export function createSubscription<Data>(scheduler?: TSchedulerOptions): TSubscription<Data>;
-export function createSubscription<Data>(scheduler?: TScheduler, options?: TSubscriptionOptions): TSubscription<Data>;
+export function createSubscription<Data>(
+  scheduler?: TSchedulerOptions,
+): TSubscription<Data>;
+export function createSubscription<Data>(
+  scheduler?: TScheduler,
+  options?: TSubscriptionOptions,
+): TSubscription<Data>;
 export function createSubscription<Data>(
   scheduler: TSchedulerOptions | TScheduler = {},
   options: TSubscriptionOptions = {},
@@ -426,7 +476,10 @@ function createSubscriptionInternal<Data>(
     return sch.emit(sub, newValue);
   }
 
-  function subscribe(callback: TSubscriptionCallback<Data>, onUnsubscribe?: TOnUnsubscribed): TUnsubscribe {
+  function subscribe(
+    callback: TSubscriptionCallback<Data>,
+    onUnsubscribe?: TOnUnsubscribed,
+  ): TUnsubscribe {
     return sch.subscribe(sub, options, callback, null, onUnsubscribe);
   }
 
@@ -467,46 +520,55 @@ export function isScheduler(scheduler: any): scheduler is TScheduler {
   return scheduler[IS_SCHEDULER] === true;
 }
 
-export function isSubscription(subscription: any): subscription is TSubscription<any> {
+export function isSubscription(
+  subscription: any,
+): subscription is TSubscription<any> {
   return subscription[IS_SUBSCRIPTION] === true;
 }
 
 export type TPubSubErreurData =
-  | { kind: 'SubscriptionDestroyed' }
-  | { kind: 'MaxSubscriptionCountReached' }
-  | { kind: 'MaxRecursiveEmitReached'; limit: number }
-  | { kind: 'MaxUnsubscribeAllLoopReached'; limit: number }
-  | { kind: 'InvalidCallback' };
+  | { kind: "SubscriptionDestroyed" }
+  | { kind: "MaxSubscriptionCountReached" }
+  | { kind: "MaxRecursiveEmitReached"; limit: number }
+  | { kind: "MaxUnsubscribeAllLoopReached"; limit: number }
+  | { kind: "InvalidCallback" };
 
-const PubSubErreurInternal = createErreurStore<TPubSubErreurData>();
+const PubSubErreurInternal: TErreurStore<TPubSubErreurData> = createErreurStore<
+  TPubSubErreurData
+>();
 
 export const PubSubErreur = PubSubErreurInternal.asReadonly;
 
 function throwSubscriptionDestroyed() {
-  return PubSubErreurInternal.setAndThrow('The subscription has been destroyed', { kind: 'SubscriptionDestroyed' });
+  return PubSubErreurInternal.setAndThrow(
+    "The subscription has been destroyed",
+    { kind: "SubscriptionDestroyed" },
+  );
 }
 
 function throwMaxSubscriptionCountReached() {
   return PubSubErreurInternal.setAndThrow(
     `The maxSubscriptionCount has been reached. If this is expected you can use the maxSubscriptionCount option to raise the limit`,
-    { kind: 'MaxSubscriptionCountReached' },
+    { kind: "MaxSubscriptionCountReached" },
   );
 }
 
 function throwMaxRecursiveEmitReached(limit: number) {
   return PubSubErreurInternal.setAndThrow(
     `The maxRecursiveEmit limit (${limit}) has been reached, did you emit() in a callback ? If this is expected you can use the maxRecursiveEmit option to raise the limit`,
-    { kind: 'MaxRecursiveEmitReached', limit },
+    { kind: "MaxRecursiveEmitReached", limit },
   );
 }
 
 function throwMaxUnsubscribeAllLoopReached(limit: number) {
   return PubSubErreurInternal.setAndThrow(
     `The maxUnsubscribeAllLoop limit (${limit}) has been reached, did you call subscribe() in the onUnsubscribe callback then called unsubscribeAll ? If this is expected you can use the maxUnsubscribeAllLoop option to raise the limit`,
-    { kind: 'MaxUnsubscribeAllLoopReached', limit },
+    { kind: "MaxUnsubscribeAllLoopReached", limit },
   );
 }
 
 function throwInvalidCallback() {
-  return PubSubErreurInternal.setAndThrow('The callback is not a function', { kind: 'InvalidCallback' });
+  return PubSubErreurInternal.setAndThrow("The callback is not a function", {
+    kind: "InvalidCallback",
+  });
 }

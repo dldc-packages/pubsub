@@ -13,12 +13,12 @@ npm install @dldc/pubsub
 ## Gist
 
 ```ts
-import { createSubscription } from '@dldc/pubsub';
+import { createSubscription } from "@dldc/pubsub";
 
 const mySub = createSubscription<number>();
 
 const unsub = mySub.subscribe((num) => {
-  console.log('num: ' + num);
+  console.log("num: " + num);
 });
 
 mySub.emit(45); // num: 45
@@ -30,26 +30,30 @@ unsub();
 
 ### Creating a Subscription
 
-To create a `Subscription` you need to import the `createSubscription` function and call it.
+To create a `Subscription` you need to import the `createSubscription` function
+and call it.
 
 ```ts
-import { createSubscription } from '@dldc/pubsub';
+import { createSubscription } from "@dldc/pubsub";
 
 const subscription = createSubscription();
 ```
 
-If you use TypeScript, you need to pass a type parameter to the `createSubscription` function to define the type of the value associated with the subscription.
+If you use TypeScript, you need to pass a type parameter to the
+`createSubscription` function to define the type of the value associated with
+the subscription.
 
 ```ts
-import { createVoidSubscription } from '@dldc/pubsub';
+import { createVoidSubscription } from "@dldc/pubsub";
 
 const numSubscription = createSubscription<number>();
 ```
 
-If you don't want your subscription to emit any value, you can use the `createVoidSubscription` function.
+If you don't want your subscription to emit any value, you can use the
+`createVoidSubscription` function.
 
 ```ts
-import { createVoidSubscription } from '@dldc/pubsub';
+import { createVoidSubscription } from "@dldc/pubsub";
 
 const voidSubscription = createVoidSubscription();
 ```
@@ -73,11 +77,11 @@ subscription.unsubscribe(callback);
 - Using a SubId (a string)
 
 ```ts
-subscription.subscribeById('mySubId', () => {
+subscription.subscribeById("mySubId", () => {
   /*...*/
 });
 // later
-subscription.unsubscribeById('mySubId');
+subscription.unsubscribeById("mySubId");
 ```
 
 In both case the `subscribe[ById]` return a function that will unsubscribe:
@@ -90,7 +94,8 @@ unsub();
 
 ### Emitting value
 
-To emit a value and trigger all subscribed `callback` you need to call the `emit` method.
+To emit a value and trigger all subscribed `callback` you need to call the
+`emit` method.
 
 ```ts
 subscription.emit(42);
@@ -100,7 +105,9 @@ voidSubscription.emit();
 
 ### OnUnsubscribe
 
-The `subscribe[ById]` methods accept a optional function after the callback, this function will be called when this callback you are subscribing is unsubscribed.
+The `subscribe[ById]` methods accept a optional function after the callback,
+this function will be called when this callback you are subscribing is
+unsubscribed.
 
 ```ts
 subscription.subscribe(
@@ -108,25 +115,26 @@ subscription.subscribe(
     /* ... */
   },
   () => {
-    console.log('Unsubscribed !');
+    console.log("Unsubscribed !");
   },
 );
 
 // or with a subId
 subscription.subscribeById(
-  'mySub',
+  "mySub",
   () => {
     /* ... */
   },
   () => {
-    console.log('Unsubscribed !');
+    console.log("Unsubscribed !");
   },
 );
 ```
 
 ### Unsubscribing all subscriptions
 
-You can call `unsubscribeAll` method on a subscription to remove all callback. This will also trigger the `onUnsubscribe` if any.
+You can call `unsubscribeAll` method on a subscription to remove all callback.
+This will also trigger the `onUnsubscribe` if any.
 
 ```ts
 subscription.unsubscribeAll();
@@ -134,7 +142,8 @@ subscription.unsubscribeAll();
 
 ### `Subscription` options
 
-The `createSubscription` (or `createVoidSubscription`) functions accept an option object as parameter (all properties are optional):
+The `createSubscription` (or `createVoidSubscription`) functions accept an
+option object as parameter (all properties are optional):
 
 ```ts
 const sub = Subscription.create({
@@ -157,27 +166,33 @@ const sub = Subscription.create({
 
 #### `onDestroy`
 
-> A function called when the `destroy` method is called. Note that during this call the `Subscription` is already destroyed and you can't call `emit` or `subscribe` anymore.
+> A function called when the `destroy` method is called. Note that during this
+> call the `Subscription` is already destroyed and you can't call `emit` or
+> `subscribe` anymore.
 
 #### `maxSubscriptionCount`
 
-> A number to limit the maximum number of simultaneous subscriptions (default is `10000`). This limit exist to detect infinit subscription loop.
+> A number to limit the maximum number of simultaneous subscriptions (default is
+> `10000`). This limit exist to detect infinit subscription loop.
 
 #### `maxRecursiveEmit`
 
-> A number to limit the maximum recursive call of `emit` (default is `1000`). This limit exist to detect infinite loop where you `emit` in a `callback`.
+> A number to limit the maximum recursive call of `emit` (default is `1000`).
+> This limit exist to detect infinite loop where you `emit` in a `callback`.
 
 #### `maxUnsubscribeAllLoop`
 
-> A number to limit the maximum recursive call of `subscribe` inside a `onUnsubscribe` callback (default is `1000`).
+> A number to limit the maximum recursive call of `subscribe` inside a
+> `onUnsubscribe` callback (default is `1000`).
 
 ### Testing if a callback / subId is subscribed
 
-The `isSubscribed[ById]` methods let you test whether or not a callback / subId is currently subscribed
+The `isSubscribed[ById]` methods let you test whether or not a callback / subId
+is currently subscribed
 
 ```ts
 subscription.isSubscribed(myCallback); // <- boolean
-subscription.isSubscribedById('my-sub-id'); // <- boolean
+subscription.isSubscribedById("my-sub-id"); // <- boolean
 ```
 
 ### Reading the number of active Subscriptions
@@ -190,15 +205,18 @@ subscription.size();
 
 ### Destroying a Subscription
 
-You can call the `destroy` method to destroy a subscription. This will unsubscribe all callback and call the `onDestroy` option if any.
+You can call the `destroy` method to destroy a subscription. This will
+unsubscribe all callback and call the `onDestroy` option if any.
 
 ```ts
 subscription.destroy();
 ```
 
-Once destroyed, calling `emit` or `subscribe[ById]` will throw an error. You can still call the other methods but they will have no effect.
+Once destroyed, calling `emit` or `subscribe[ById]` will throw an error. You can
+still call the other methods but they will have no effect.
 
-You can check if a subscription is destroyed by calling the `isDestroyed` method.
+You can check if a subscription is destroyed by calling the `isDestroyed`
+method.
 
 ```ts
 subscription.isDestroyed(); // <- boolean
@@ -210,12 +228,15 @@ subscription.isDestroyed(); // <- boolean
 
 #### If you re-subscribe the same callback or id it will not re-do a subscription but instead move the subscription to the end.
 
-In other words, calling `subscribe` on an already subscribed callback or subId will not make the callback called twice. But it will move the callback at the end of the subscription list.
-In the case of a subId, the callback will be replaced by the new one.
+In other words, calling `subscribe` on an already subscribed callback or subId
+will not make the callback called twice. But it will move the callback at the
+end of the subscription list. In the case of a subId, the callback will be
+replaced by the new one.
 
 #### If you call `unsubscribe` in a callback it will have effect immediatly.
 
-If the callback you unsubscribe is supposed to run after the current callback, it will not be called.
+If the callback you unsubscribe is supposed to run after the current callback,
+it will not be called.
 
 #### If you `subscribe` in a callback it will not be called immediatly.
 
@@ -227,7 +248,8 @@ But it will be in the next `emit`.
 
 #### Calling `destroy` will unsubscribe all callback and call the `onUnsubscribe` if any
 
-In these `onUnsubscribe` callback the subscription is considered destroyed so you can't call `emit` or `subscribe` anymore.
+In these `onUnsubscribe` callback the subscription is considered destroyed so
+you can't call `emit` or `subscribe` anymore.
 
 #### Calling `destroy` on a destroyed subscription will have no effect
 
@@ -235,18 +257,25 @@ This is a no-op, it will not call `onDestroy` again.
 
 #### The subscription is already considered destroyed when `onDestroy` is called
 
-This means that you can't call `emit` or `subscribe` in the `onDestroy` callback and that `isDestroyed` will return `true` in the `onDestroy` callback.
+This means that you can't call `emit` or `subscribe` in the `onDestroy` callback
+and that `isDestroyed` will return `true` in the `onDestroy` callback.
 
 ## Scheduler [ADVANCED]
 
-At the core of the `Subscription` is a scheduler that will manage the different callbacks and their order of execution. If you need a single subscription or event multiple that don't interact with each other, you don't need to know about the scheduler. But if you need for example to subscribe to a subscription in the callback of another subscription then keep reading.
+At the core of the `Subscription` is a scheduler that will manage the different
+callbacks and their order of execution. If you need a single subscription or
+event multiple that don't interact with each other, you don't need to know about
+the scheduler. But if you need for example to subscribe to a subscription in the
+callback of another subscription then keep reading.
 
 ### Resuse the same scheduler for multiple subscriptions
 
-You can create a `Scheduler` unsing the `createScheduler` function. You can then pass this scheduler as the first option of the `createSubscription` and `createVoidSubscription` functions.
+You can create a `Scheduler` unsing the `createScheduler` function. You can then
+pass this scheduler as the first option of the `createSubscription` and
+`createVoidSubscription` functions.
 
 ```ts
-import { createScheduler, createSubscription } from '@dldc/pubsub';
+import { createScheduler, createSubscription } from "@dldc/pubsub";
 
 const scheduler = createScheduler();
 
@@ -254,26 +283,32 @@ const sub1 = createSubscription(scheduler);
 const sub2 = createSubscription(scheduler);
 ```
 
-Note that the `createScheduler` function accept the same options as the `createSubscription` function. When you pass a scheduler to create a subscription, you can also pass a second argument to specify a `onFirstSubscription` and `onLastUnsubscribe` function specific to this subscription.
+Note that the `createScheduler` function accept the same options as the
+`createSubscription` function. When you pass a scheduler to create a
+subscription, you can also pass a second argument to specify a
+`onFirstSubscription` and `onLastUnsubscribe` function specific to this
+subscription.
 
 ```ts
-import { createScheduler, createSubscription } from '@dldc/pubsub';
+import { createScheduler, createSubscription } from "@dldc/pubsub";
 
 const scheduler = createScheduler();
 
 const sub1 = createSubscription(scheduler, {
   onFirstSubscription: () => {
-    console.log('First subscription');
+    console.log("First subscription");
   },
   onLastUnsubscribe: () => {
-    console.log('Last unsubscribe');
+    console.log("Last unsubscribe");
   },
 });
 ```
 
 ### Destrying a scheduler
 
-Note that when you destroy a scheduler, all subscriptions that use this scheduler will be destroyed as well. Calling `.destroy()` on a subscription will actually call `.destroy()` on the scheduler.
+Note that when you destroy a scheduler, all subscriptions that use this
+scheduler will be destroyed as well. Calling `.destroy()` on a subscription will
+actually call `.destroy()` on the scheduler.
 
 ## API
 
@@ -285,13 +320,27 @@ export type VoidSubscriptionCallback = () => void;
 export type UnsubscribeAllMethod = () => void;
 
 export interface SubscribeMethod<T> {
-  (callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed): Unsubscribe;
-  (subId: string, callback: SubscriptionCallback<T>, onUnsubscribe?: OnUnsubscribed): Unsubscribe;
+  (
+    callback: SubscriptionCallback<T>,
+    onUnsubscribe?: OnUnsubscribed,
+  ): Unsubscribe;
+  (
+    subId: string,
+    callback: SubscriptionCallback<T>,
+    onUnsubscribe?: OnUnsubscribed,
+  ): Unsubscribe;
 }
 
 export interface VoidSubscribeMethod {
-  (callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed): Unsubscribe;
-  (subId: string, callback: VoidSubscriptionCallback, onUnsubscribe?: OnUnsubscribed): Unsubscribe;
+  (
+    callback: VoidSubscriptionCallback,
+    onUnsubscribe?: OnUnsubscribed,
+  ): Unsubscribe;
+  (
+    subId: string,
+    callback: VoidSubscriptionCallback,
+    onUnsubscribe?: OnUnsubscribed,
+  ): Unsubscribe;
 }
 
 export interface IsSubscribedMethod<T> {
