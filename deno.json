@@ -1,6 +1,6 @@
 {
   "name": "@dldc/pubsub",
-  "version": "7.0.1",
+  "version": "7.1.0",
   "exports": "./mod.ts",
   "imports": {
     "@dldc/erreur": "jsr:@dldc/erreur@^7.1.1",
