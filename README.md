@@ -1,10 +1,6 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/dldc-packages/pubsub/main/design/logo.png" width="597" alt="pubsub logo">
-</p>
-
 # 📫 PubSub
 
-> A simple pub/sub written in Typescript
+> A pub/sub library written in TypeScript
 
 ```
 npm install @dldc/pubsub
@@ -23,7 +19,7 @@ const unsub = mySub.subscribe((num) => {
 
 mySub.emit(45); // num: 45
 
-unsub();
+unsub(); // Unsubscribe the callback
 ```
 
 ## Guide
@@ -226,6 +222,20 @@ subscription.isDestroyed(); // <- boolean
 
 #### Callback are called in the order they are subscribed.
 
+```ts
+import { createSubscription } from "@dldc/pubsub";
+
+const subscription = createSubscription<number>();
+
+subscription.subscribe((value) => console.log("First callback: " + value));
+subscription.subscribe((value) => console.log("Second callback: " + value));
+
+subscription.emit(42);
+// Output:
+// First callback: 42
+// Second callback: 42
+```
+
 #### If you re-subscribe the same callback or id it will not re-do a subscription but instead move the subscription to the end.
 
 In other words, calling `subscribe` on an already subscribed callback or subId
@@ -233,32 +243,131 @@ will not make the callback called twice. But it will move the callback at the
 end of the subscription list. In the case of a subId, the callback will be
 replaced by the new one.
 
+```ts
+const callback = (value: number) => console.log("Callback: " + value);
+const otherCallback = (value: number) =>
+  console.log("Other callback: " + value);
+
+subscription.subscribe(callback);
+subscription.subscribe(otherCallback);
+subscription.subscribe(callback); // Moves the callback to the end
+
+subscription.emit(42);
+// Output:
+// Other callback: 42
+// Callback: 42
+```
+
 #### If you call `unsubscribe` in a callback it will have effect immediatly.
 
 If the callback you unsubscribe is supposed to run after the current callback,
 it will not be called.
 
+```ts
+const cb1 = () => {
+  console.log("Callback 1");
+  subscription.unsubscribe(cb2);
+};
+
+const cb2 = () => {
+  console.log("Callback 2");
+};
+
+subscription.subscribe(cb1);
+subscription.subscribe(cb2);
+
+subscription.emit(42);
+// Output:
+// Callback 1
+```
+
 #### If you `subscribe` in a callback it will not be called immediatly.
 
 But it will be in the next `emit`.
 
+```ts
+subscription.subscribe((value) => {
+  console.log("First callback: " + value);
+  subscription.subscribe((v) => console.log("New callback: " + v));
+});
+
+subscription.emit(42);
+subscription.emit(43);
+// Output:
+// First callback: 42
+// First callback: 43
+// New callback: 43
+```
+
 #### If you `emit()` in a callback it will defer the call to after the current emit is done.
 
-#### If you `subscribe` / `unsubscribe` / `emit` in an `onUnsubscribed` it will behave the same as if it was in the callback itself
+```ts
+const sb1 = (value: number) => {
+  console.log("First callback: " + value);
+  if (value === 42) {
+    subscription.emit(43);
+  }
+};
+const cb2 = (value: number) => {
+  console.log("Second callback: " + value);
+};
+
+subscription.subscribe(sb1);
+subscription.subscribe(cb2);
+
+subscription.emit(42);
+// Output:
+// First callback: 42
+// Second callback: 42
+// First callback: 43
+// Second callback: 43
+```
+
+#### If you `subscribe` / `unsubscribe` / `emit` in an `onUnsubscribed` it will behave in the same way as if it was in the callback itself
 
 #### Calling `destroy` will unsubscribe all callback and call the `onUnsubscribe` if any
 
 In these `onUnsubscribe` callback the subscription is considered destroyed so
 you can't call `emit` or `subscribe` anymore.
 
+```ts
+subscription.subscribe(
+  () => console.log("Callback"),
+  () => console.log("Unsubscribed"),
+);
+
+subscription.destroy();
+// Output:
+// Unsubscribed
+```
+
 #### Calling `destroy` on a destroyed subscription will have no effect
 
 This is a no-op, it will not call `onDestroy` again.
+
+```ts
+subscription.destroy();
+subscription.destroy(); // No effect
+```
 
 #### The subscription is already considered destroyed when `onDestroy` is called
 
 This means that you can't call `emit` or `subscribe` in the `onDestroy` callback
 and that `isDestroyed` will return `true` in the `onDestroy` callback.
+
+```ts
+const subscription = createSubscription<number>({
+  onDestroy: () => {
+    console.log("Destroyed");
+    console.log("Is destroyed: " + subscription.isDestroyed());
+  },
+});
+
+subscription.destroy();
+// Output:
+// Destroyed
+// Is destroyed: true
+```
 
 ## Scheduler [ADVANCED]
 

@@ -1,0 +1,25 @@
+{
+  "name": "@dldc/pubsub",
+  "version": "7.0.1",
+  "exports": "./mod.ts",
+  "imports": {
+    "@dldc/erreur": "jsr:@dldc/erreur@^7.1.1",
+    "@std/expect": "jsr:@std/expect@^1.0.15"
+  },
+  "tasks": {
+    "test:run": "deno test -A",
+    "test:watch": "deno test --watch",
+    "bump": "deno run -A jsr:@mys/bump@1",
+    "deps:outdated": "deno outdated",
+    "deps:update": "deno outdated --update --latest --interactive",
+    "check": "deno fmt --check . && deno lint . && deno check **/*.ts && deno task test:run",
+    "test:coverage": "deno test -A --coverage=coverage && deno coverage coverage --html"
+  },
+  "lint": {
+    "rules": {
+      "exclude": [
+        "no-explicit-any"
+      ]
+    }
+  }
+}

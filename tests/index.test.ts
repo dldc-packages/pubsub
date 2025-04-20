@@ -1,6 +1,4 @@
-// deno-lint-ignore-file no-explicit-any
-
-import { expect, fn } from "$std/expect/mod.ts";
+import { expect, fn } from "@std/expect";
 import {
   createScheduler,
   createSubscription,
@@ -140,16 +138,19 @@ Deno.test("Unsub twice with a subId should not throw an error", () => {
   }).not.toThrow();
 });
 
-Deno.test("Unsub twice with a subId using sub.unsubscribe should not throw an error", () => {
-  const sub = createSubscription<number>();
-  const cb1 = fn() as TSubscriptionCallback<number>;
-  sub.subscribeById("sub1", cb1);
-  sub.unsubscribeById("sub1");
-  expect(sub.isSubscribedById("sub1")).toBe(false);
-  expect(() => {
+Deno.test(
+  "Unsub twice with a subId using sub.unsubscribe should not throw an error",
+  () => {
+    const sub = createSubscription<number>();
+    const cb1 = fn() as TSubscriptionCallback<number>;
+    sub.subscribeById("sub1", cb1);
     sub.unsubscribeById("sub1");
-  }).not.toThrow();
-});
+    expect(sub.isSubscribedById("sub1")).toBe(false);
+    expect(() => {
+      sub.unsubscribeById("sub1");
+    }).not.toThrow();
+  },
+);
 
 Deno.test("Unsub twice with a cb should not throw an error", () => {
   const sub = createSubscription<number>();
@@ -161,68 +162,80 @@ Deno.test("Unsub twice with a cb should not throw an error", () => {
   }).not.toThrow();
 });
 
-Deno.test("If cb remove a callback not called yet it should not call it", () => {
-  const sub = createSubscription<number>();
-  const cb1 = () => {
-    sub.unsubscribe(cb2);
-  };
-  const cb2 = fn() as TSubscriptionCallback<number>;
-  sub.subscribe(cb1);
-  sub.subscribe(cb2);
-  sub.emit(42);
-  expect(cb2).not.toHaveBeenCalled();
-});
+Deno.test(
+  "If cb remove a callback not called yet it should not call it",
+  () => {
+    const sub = createSubscription<number>();
+    const cb1 = () => {
+      sub.unsubscribe(cb2);
+    };
+    const cb2 = fn() as TSubscriptionCallback<number>;
+    sub.subscribe(cb1);
+    sub.subscribe(cb2);
+    sub.emit(42);
+    expect(cb2).not.toHaveBeenCalled();
+  },
+);
 
-Deno.test("If a cb remove a callback by subId not called yet it should not call it", () => {
-  const sub = createSubscription<number>();
-  const cb1 = () => {
-    sub.unsubscribeById("sub2");
-  };
-  const cb2 = fn() as TSubscriptionCallback<number>;
-  sub.subscribe(cb1);
-  sub.subscribeById("sub2", cb2);
-  sub.emit(42);
-  expect(cb2).not.toHaveBeenCalled();
-  expect(sub.isSubscribedById("sub2")).toBe(false);
-});
+Deno.test(
+  "If a cb remove a callback by subId not called yet it should not call it",
+  () => {
+    const sub = createSubscription<number>();
+    const cb1 = () => {
+      sub.unsubscribeById("sub2");
+    };
+    const cb2 = fn() as TSubscriptionCallback<number>;
+    sub.subscribe(cb1);
+    sub.subscribeById("sub2", cb2);
+    sub.emit(42);
+    expect(cb2).not.toHaveBeenCalled();
+    expect(sub.isSubscribedById("sub2")).toBe(false);
+  },
+);
 
-Deno.test("If cb remove a callback already called it should not skip cb", () => {
-  const sub = createSubscription<number>();
-  const cb1 = fn() as TSubscriptionCallback<number>;
-  const cb2 = fn(() => {
-    sub.unsubscribe(cb1);
-  }) as TSubscriptionCallback<number>;
-  const cb3 = fn() as TSubscriptionCallback<number>;
-  const cb4 = fn() as TSubscriptionCallback<number>;
-  sub.subscribe(cb1);
-  sub.subscribe(cb2);
-  sub.subscribe(cb3);
-  sub.subscribe(cb4);
-  sub.emit(42);
-  expect(cb1).toHaveBeenCalledTimes(1);
-  expect(cb2).toHaveBeenCalledTimes(1);
-  expect(cb3).toHaveBeenCalledTimes(1);
-  expect(cb4).toHaveBeenCalledTimes(1);
-});
-
-Deno.test("adding a callback in a cb should not call it until the next call()", () => {
-  const sub = createSubscription<number>();
-  const cb1 = fn() as TSubscriptionCallback<number>;
-  const cb2 = fn(() => {
+Deno.test(
+  "If cb remove a callback already called it should not skip cb",
+  () => {
+    const sub = createSubscription<number>();
+    const cb1 = fn() as TSubscriptionCallback<number>;
+    const cb2 = fn(() => {
+      sub.unsubscribe(cb1);
+    }) as TSubscriptionCallback<number>;
+    const cb3 = fn() as TSubscriptionCallback<number>;
+    const cb4 = fn() as TSubscriptionCallback<number>;
+    sub.subscribe(cb1);
+    sub.subscribe(cb2);
     sub.subscribe(cb3);
-  }) as TSubscriptionCallback<number>;
-  const cb3 = fn() as TSubscriptionCallback<number>;
-  sub.subscribe(cb1);
-  sub.subscribe(cb2);
-  sub.emit(42);
-  expect(cb1).toHaveBeenCalledTimes(1);
-  expect(cb2).toHaveBeenCalledTimes(1);
-  expect(cb3).not.toHaveBeenCalled();
-  sub.emit(3);
-  expect(cb1).toHaveBeenCalledTimes(2);
-  expect(cb2).toHaveBeenCalledTimes(2);
-  expect(cb3).toHaveBeenCalledTimes(1);
-});
+    sub.subscribe(cb4);
+    sub.emit(42);
+    expect(cb1).toHaveBeenCalledTimes(1);
+    expect(cb2).toHaveBeenCalledTimes(1);
+    expect(cb3).toHaveBeenCalledTimes(1);
+    expect(cb4).toHaveBeenCalledTimes(1);
+  },
+);
+
+Deno.test(
+  "adding a callback in a cb should not call it until the next call()",
+  () => {
+    const sub = createSubscription<number>();
+    const cb1 = fn() as TSubscriptionCallback<number>;
+    const cb2 = fn(() => {
+      sub.subscribe(cb3);
+    }) as TSubscriptionCallback<number>;
+    const cb3 = fn() as TSubscriptionCallback<number>;
+    sub.subscribe(cb1);
+    sub.subscribe(cb2);
+    sub.emit(42);
+    expect(cb1).toHaveBeenCalledTimes(1);
+    expect(cb2).toHaveBeenCalledTimes(1);
+    expect(cb3).not.toHaveBeenCalled();
+    sub.emit(3);
+    expect(cb1).toHaveBeenCalledTimes(2);
+    expect(cb2).toHaveBeenCalledTimes(2);
+    expect(cb3).toHaveBeenCalledTimes(1);
+  },
+);
 
 Deno.test("calling unsubscribeAll should work", () => {
   const sub = createSubscription<number>();
@@ -242,24 +255,28 @@ Deno.test("calling unsubscribeAll should work", () => {
   expect(cb3).toHaveBeenCalledTimes(1);
 });
 
-Deno.test("subscribing twice the same callback with subId should return the same unsub", () => {
-  const sub = createSubscription<number>();
-  const cb1 = fn() as TSubscriptionCallback<number>;
-  const unsub1 = sub.subscribeById("sub", cb1);
-  const unsub2 = sub.subscribeById("sub", cb1);
-  expect(unsub1).toBe(unsub2);
-});
+Deno.test(
+  "subscribing twice the same callback with subId should return the same unsub",
+  () => {
+    const sub = createSubscription<number>();
+    const cb1 = fn() as TSubscriptionCallback<number>;
+    const unsub1 = sub.subscribeById("sub", cb1);
+    const unsub2 = sub.subscribeById("sub", cb1);
+    expect(unsub1).toBe(unsub2);
+  },
+);
 
 Deno.test("not passing a function as callback should throw an error", () => {
   const sub = createSubscription<number>();
   expect(() => {
+    // deno-lint-ignore no-explicit-any
     sub.subscribe(42 as any);
   }).toThrow();
 });
 
 Deno.test("onFirstSubscription and onLastUnsubscribe", () => {
-  const onFirst = fn() as (() => void);
-  const onLast = fn() as (() => void);
+  const onFirst = fn() as () => void;
+  const onLast = fn() as () => void;
   const sub = createSubscription<number>({
     onFirstSubscription: onFirst,
     onLastUnsubscribe: onLast,
@@ -283,34 +300,40 @@ Deno.test("onFirstSubscription and onLastUnsubscribe", () => {
   expect(onLast).toHaveBeenCalledTimes(1);
 });
 
-Deno.test("calling unsubscribeAll inside a cb should stop all the other", () => {
-  const sub = createSubscription<number>();
-  const cb1 = fn(() => {
-    sub.unsubscribeAll();
-  }) as TSubscriptionCallback<number>;
-  const cb2 = fn() as TSubscriptionCallback<number>;
-  const cb3 = fn() as TSubscriptionCallback<number>;
-  sub.subscribe(cb1);
-  sub.subscribe(cb2);
-  sub.subscribe(cb3);
-  sub.emit(42);
-  expect(cb1).toHaveBeenCalledTimes(1);
-  expect(cb2).not.toHaveBeenCalled();
-  expect(cb3).not.toHaveBeenCalled();
-  expect(sub.isSubscribed(cb1)).toBe(false);
-  expect(sub.isSubscribed(cb2)).toBe(false);
-  expect(sub.isSubscribed(cb3)).toBe(false);
-});
+Deno.test(
+  "calling unsubscribeAll inside a cb should stop all the other",
+  () => {
+    const sub = createSubscription<number>();
+    const cb1 = fn(() => {
+      sub.unsubscribeAll();
+    }) as TSubscriptionCallback<number>;
+    const cb2 = fn() as TSubscriptionCallback<number>;
+    const cb3 = fn() as TSubscriptionCallback<number>;
+    sub.subscribe(cb1);
+    sub.subscribe(cb2);
+    sub.subscribe(cb3);
+    sub.emit(42);
+    expect(cb1).toHaveBeenCalledTimes(1);
+    expect(cb2).not.toHaveBeenCalled();
+    expect(cb3).not.toHaveBeenCalled();
+    expect(sub.isSubscribed(cb1)).toBe(false);
+    expect(sub.isSubscribed(cb2)).toBe(false);
+    expect(sub.isSubscribed(cb3)).toBe(false);
+  },
+);
 
-Deno.test("Calling call in a callback should throw because of inifnite loop", () => {
-  const sub = createSubscription<number>();
-  let val = 0;
-  const cb1 = fn(() => {
-    sub.emit(val++);
-  }) as TSubscriptionCallback<number>;
-  sub.subscribe(cb1);
-  expect(() => sub.emit(val++)).toThrow(/maxRecursiveEmit/);
-});
+Deno.test(
+  "Calling call in a callback should throw because of inifnite loop",
+  () => {
+    const sub = createSubscription<number>();
+    let val = 0;
+    const cb1 = fn(() => {
+      sub.emit(val++);
+    }) as TSubscriptionCallback<number>;
+    sub.subscribe(cb1);
+    expect(() => sub.emit(val++)).toThrow(/maxRecursiveEmit/);
+  },
+);
 
 Deno.test("maxRecursiveEmit", () => {
   const sub = createSubscription<number>({ maxRecursiveEmit: 10 });
@@ -335,31 +358,34 @@ Deno.test("maxSubscriptionCount limit the number of subscriptions", () => {
   expect(() => sub.emit()).toThrow(/maxSubscriptionCount/);
 });
 
-Deno.test("Calling call conditinally in a callback should defer the call", () => {
-  const sub = createSubscription<number>();
-  let count = 0;
-  const cb1 = fn((val: number) => {
-    if (val === 0) {
-      sub.emit(1);
-    }
-    return count++;
-  }) as TSubscriptionCallback<number>;
-  const cb2 = fn(() => count++) as TSubscriptionCallback<number>;
-  sub.subscribe(cb1);
-  sub.subscribe(cb2);
-  sub.emit(0);
-  expect(cb1).toHaveBeenCalledTimes(2);
-  expect(cb1).toHaveBeenCalledWith(0);
-  expect(cb1).toHaveBeenCalledWith(1);
-  expect(cb2).toHaveBeenCalledTimes(2);
-  expect(cb2).toHaveBeenCalledWith(0);
-  expect(cb2).toHaveBeenCalledWith(1);
-  // make sure the order is correct (cb1 is now last)
-  expect(cb1).toHaveNthReturnedWith(1, 0);
-  expect(cb2).toHaveNthReturnedWith(1, 1);
-  expect(cb1).toHaveNthReturnedWith(2, 2);
-  expect(cb2).toHaveNthReturnedWith(2, 3);
-});
+Deno.test(
+  "Calling call conditinally in a callback should defer the call",
+  () => {
+    const sub = createSubscription<number>();
+    let count = 0;
+    const cb1 = fn((val: number) => {
+      if (val === 0) {
+        sub.emit(1);
+      }
+      return count++;
+    }) as TSubscriptionCallback<number>;
+    const cb2 = fn(() => count++) as TSubscriptionCallback<number>;
+    sub.subscribe(cb1);
+    sub.subscribe(cb2);
+    sub.emit(0);
+    expect(cb1).toHaveBeenCalledTimes(2);
+    expect(cb1).toHaveBeenCalledWith(0);
+    expect(cb1).toHaveBeenCalledWith(1);
+    expect(cb2).toHaveBeenCalledTimes(2);
+    expect(cb2).toHaveBeenCalledWith(0);
+    expect(cb2).toHaveBeenCalledWith(1);
+    // make sure the order is correct (cb1 is now last)
+    expect(cb1).toHaveNthReturnedWith(1, 0);
+    expect(cb2).toHaveNthReturnedWith(1, 1);
+    expect(cb1).toHaveNthReturnedWith(2, 2);
+    expect(cb2).toHaveNthReturnedWith(2, 3);
+  },
+);
 
 Deno.test("Sub.size() returns the number of subscriptions", () => {
   const sub = createSubscription<number>();
@@ -383,7 +409,7 @@ Deno.test("Sub.size() returns the number of subscriptions", () => {
 
 Deno.test("OnUnsubscribe is called when unsubscribe is called", () => {
   const sub = createSubscription<number>();
-  const onUnsub = fn() as (() => void);
+  const onUnsub = fn() as () => void;
   const unsub = sub.subscribe(() => {}, onUnsub);
   expect(onUnsub).not.toHaveBeenCalled();
   unsub();
@@ -394,7 +420,7 @@ Deno.test("OnUnsubscribe is called when unsubscribe is called", () => {
 
 Deno.test("OnUnsubscribe is called when sub.unsubscribe is called", () => {
   const sub = createSubscription<number>();
-  const onUnsub = fn() as (() => void);
+  const onUnsub = fn() as () => void;
   const cb = () => {};
   sub.subscribe(cb, onUnsub);
   expect(onUnsub).not.toHaveBeenCalled();
@@ -404,26 +430,29 @@ Deno.test("OnUnsubscribe is called when sub.unsubscribe is called", () => {
 
 Deno.test("OnUnsubscribe is called when sub.unsubscribeAll is called", () => {
   const sub = createSubscription<number>();
-  const onUnsub = fn() as (() => void);
+  const onUnsub = fn() as () => void;
   sub.subscribe(() => {}, onUnsub);
   expect(onUnsub).not.toHaveBeenCalled();
   sub.unsubscribeAll();
   expect(onUnsub).toHaveBeenCalledTimes(1);
 });
 
-Deno.test("Resubscribing with different onUnsub should update the onUnsub", () => {
-  const sub = createSubscription<number>();
-  const onUnsub1 = fn() as (() => void);
-  const onUnsub2 = fn() as (() => void);
-  const cb = () => {};
-  sub.subscribe(cb, onUnsub1);
-  sub.subscribe(cb, onUnsub2);
-  expect(onUnsub1).not.toHaveBeenCalled();
-  expect(onUnsub2).not.toHaveBeenCalled();
-  sub.unsubscribeAll();
-  // expect(onUnsub1).not.toHaveBeenCalled();
-  expect(onUnsub2).toHaveBeenCalledTimes(1);
-});
+Deno.test(
+  "Resubscribing with different onUnsub should update the onUnsub",
+  () => {
+    const sub = createSubscription<number>();
+    const onUnsub1 = fn() as () => void;
+    const onUnsub2 = fn() as () => void;
+    const cb = () => {};
+    sub.subscribe(cb, onUnsub1);
+    sub.subscribe(cb, onUnsub2);
+    expect(onUnsub1).not.toHaveBeenCalled();
+    expect(onUnsub2).not.toHaveBeenCalled();
+    sub.unsubscribeAll();
+    // expect(onUnsub1).not.toHaveBeenCalled();
+    expect(onUnsub2).toHaveBeenCalledTimes(1);
+  },
+);
 
 Deno.test("Cannot subscribe or emit once destroyed", () => {
   const sub = createSubscription<number>();
@@ -440,7 +469,7 @@ Deno.test("Destroy twice should not throw", () => {
 });
 
 Deno.test("onDestroy is called when destroy is called", () => {
-  const onDestroy = fn() as (() => void);
+  const onDestroy = fn() as () => void;
   const sub = createSubscription<number>({ onDestroy });
   expect(onDestroy).not.toHaveBeenCalled();
   sub.destroy();
@@ -467,29 +496,35 @@ Deno.test("resubscribing subid should update the callback", () => {
   expect(cb2).toHaveBeenCalledWith(21);
 });
 
-Deno.test("resubscribing last subscription should not trigger onLastUnsubscribe > with id subscription", () => {
-  const onLastUnsubscribe = fn() as (() => void);
-  const sub = createSubscription<number>({
-    onLastUnsubscribe,
-  });
-  const cb1 = fn() as TSubscriptionCallback<number>;
-  sub.subscribeById("subid1", cb1);
-  expect(onLastUnsubscribe).not.toHaveBeenCalled();
-  sub.subscribeById("subid2", cb1);
-  expect(onLastUnsubscribe).not.toHaveBeenCalled();
-});
+Deno.test(
+  "resubscribing last subscription should not trigger onLastUnsubscribe > with id subscription",
+  () => {
+    const onLastUnsubscribe = fn() as () => void;
+    const sub = createSubscription<number>({
+      onLastUnsubscribe,
+    });
+    const cb1 = fn() as TSubscriptionCallback<number>;
+    sub.subscribeById("subid1", cb1);
+    expect(onLastUnsubscribe).not.toHaveBeenCalled();
+    sub.subscribeById("subid2", cb1);
+    expect(onLastUnsubscribe).not.toHaveBeenCalled();
+  },
+);
 
-Deno.test("resubscribing last subscription should not trigger onLastUnsubscribe > with callback subscription", () => {
-  const onLastUnsubscribe = fn() as (() => void);
-  const sub = createSubscription<number>({
-    onLastUnsubscribe,
-  });
-  const cb1 = fn() as TSubscriptionCallback<number>;
-  sub.subscribe(cb1);
-  expect(onLastUnsubscribe).not.toHaveBeenCalled();
-  sub.subscribe(cb1);
-  expect(onLastUnsubscribe).not.toHaveBeenCalled();
-});
+Deno.test(
+  "resubscribing last subscription should not trigger onLastUnsubscribe > with callback subscription",
+  () => {
+    const onLastUnsubscribe = fn() as () => void;
+    const sub = createSubscription<number>({
+      onLastUnsubscribe,
+    });
+    const cb1 = fn() as TSubscriptionCallback<number>;
+    sub.subscribe(cb1);
+    expect(onLastUnsubscribe).not.toHaveBeenCalled();
+    sub.subscribe(cb1);
+    expect(onLastUnsubscribe).not.toHaveBeenCalled();
+  },
+);
 
 Deno.test("Basic scheduler usage", () => {
   const scheduler = createScheduler();
