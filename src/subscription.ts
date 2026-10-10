@@ -1,9 +1,5 @@
 import { IS_SUBSCRIPTION } from "./internal.ts";
-import {
-  createScheduler,
-  type TScheduler,
-  type TSchedulerOptions,
-} from "./scheduler.ts";
+import { createScheduler, type TScheduler, type TSchedulerOptions } from "./scheduler.ts";
 import type {
   BatchMethod,
   IsSubscribedByIdMethod,
@@ -63,9 +59,7 @@ export interface TSubscriptionOptions {
   readonly onLastUnsubscribe?: () => void;
 }
 
-export function createVoidSubscription(
-  scheduler?: TSchedulerOptions,
-): TVoidSubscription;
+export function createVoidSubscription(scheduler?: TSchedulerOptions): TVoidSubscription;
 export function createVoidSubscription(
   scheduler: TScheduler,
   options?: TSubscriptionOptions,
@@ -77,9 +71,7 @@ export function createVoidSubscription(
   return createSubscriptionInternal<void>(scheduler, options);
 }
 
-export function createSubscription<Data>(
-  scheduler?: TSchedulerOptions,
-): TSubscription<Data>;
+export function createSubscription<Data>(scheduler?: TSchedulerOptions): TSubscription<Data>;
 export function createSubscription<Data>(
   scheduler?: TScheduler,
   options?: TSubscriptionOptions,

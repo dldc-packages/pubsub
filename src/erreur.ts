@@ -7,17 +7,15 @@ export type TPubSubErreurData =
   | { kind: "MaxUnsubscribeAllLoopReached"; limit: number }
   | { kind: "InvalidCallback" };
 
-const PubSubErreurInternal: TErreurStore<TPubSubErreurData> = createErreurStore<
-  TPubSubErreurData
->();
+const PubSubErreurInternal: TErreurStore<TPubSubErreurData> =
+  createErreurStore<TPubSubErreurData>();
 
 export const PubSubErreur = PubSubErreurInternal.asReadonly;
 
 export function throwSubscriptionDestroyed() {
-  return PubSubErreurInternal.setAndThrow(
-    "The subscription has been destroyed",
-    { kind: "SubscriptionDestroyed" },
-  );
+  return PubSubErreurInternal.setAndThrow("The subscription has been destroyed", {
+    kind: "SubscriptionDestroyed",
+  });
 }
 
 export function throwMaxSubscriptionCountReached() {

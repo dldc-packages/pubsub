@@ -7,12 +7,7 @@ import {
 } from "./erreur.ts";
 import { IS_SCHEDULER } from "./internal.ts";
 import type { TSubscription, TSubscriptionOptions } from "./subscription.ts";
-import type {
-  BatchMethod,
-  TOnUnsubscribed,
-  TSubscriptionCallback,
-  TUnsubscribe,
-} from "./types.ts";
+import type { BatchMethod, TOnUnsubscribed, TSubscriptionCallback, TUnsubscribe } from "./types.ts";
 
 export interface TSchedulerOptions {
   readonly onFirstSubscription?: () => void;
@@ -48,10 +43,7 @@ export interface TScheduler {
   readonly size: (subscription: TSubscription<any> | null) => number;
   readonly isDestroyed: () => boolean;
   readonly destroy: () => void;
-  readonly emit: <Data>(
-    subscription: TSubscription<Data>,
-    newValue: Data,
-  ) => void;
+  readonly emit: <Data>(subscription: TSubscription<Data>, newValue: Data) => void;
   readonly batch: BatchMethod;
   readonly unsubscribeAll: (subscription: TSubscription<any> | null) => void;
   readonly subscribe: TSchedulerSubscribe;
@@ -105,8 +97,7 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
     if (!subscription) {
       return subscriptions.length;
     }
-    return subscriptions.filter((sub) => sub.subscription === subscription)
-      .length;
+    return subscriptions.filter((sub) => sub.subscription === subscription).length;
   }
 
   function isDestroyed() {
@@ -209,11 +200,7 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
       return throwInvalidCallback();
     }
 
-    const alreadySubscribed = findSubscriptionItem(
-      subscription,
-      subId,
-      callback,
-    );
+    const alreadySubscribed = findSubscriptionItem(subscription, subId, callback);
 
     if (alreadySubscribed) {
       if (subId !== null) {
@@ -246,9 +233,7 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
       onFirstSubscription();
     }
     if (subscriptionOptions.onFirstSubscription && subSizeBefore === 0) {
-      const subSizeAfter = subscriptions.filter(
-        (i) => i.subscription === subscription,
-      ).length;
+      const subSizeAfter = subscriptions.filter((i) => i.subscription === subscription).length;
       if (subSizeAfter === 1) {
         subscriptionOptions.onFirstSubscription();
       }
@@ -277,9 +262,7 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
         ? subscriptions.filter((i) => i.subscription === subscription).length
         : 0;
       subscriptions.splice(index, 1);
-      const queueIndex = nextSubscriptions.findIndex(
-        (i) => i.callback === callback,
-      );
+      const queueIndex = nextSubscriptions.findIndex((i) => i.callback === callback);
       if (queueIndex >= 0) {
         nextSubscriptions.splice(queueIndex, 1);
       }
@@ -287,9 +270,7 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
         item.onUnsubscribe();
       }
       if (subscriptionOptions.onLastUnsubscribe && subSizeBefore > 0) {
-        const subSizeAfter = subscriptions.filter(
-          (i) => i.subscription === subscription,
-        ).length;
+        const subSizeAfter = subscriptions.filter((i) => i.subscription === subscription).length;
         if (subSizeAfter === 0) {
           subscriptionOptions.onLastUnsubscribe();
         }
@@ -320,11 +301,7 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
     subId: string | null,
     callback?: TSubscriptionCallback<Data>,
   ): boolean {
-    const subscriptionItem = findSubscriptionItem(
-      subscription,
-      subId,
-      callback,
-    );
+    const subscriptionItem = findSubscriptionItem(subscription, subId, callback);
     return subscriptionItem !== undefined;
   }
 
@@ -333,11 +310,7 @@ export function createScheduler(options: TSchedulerOptions = {}): TScheduler {
     subId: string | null,
     callback?: TSubscriptionCallback<Data>,
   ): void {
-    const subscriptionItem = findSubscriptionItem(
-      subscription,
-      subId,
-      callback,
-    );
+    const subscriptionItem = findSubscriptionItem(subscription, subId, callback);
     if (subscriptionItem) {
       subscriptionItem.unsubscribe();
     }
