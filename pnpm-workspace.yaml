@@ -1,0 +1,2 @@
+minimumReleaseAgeExclude:
+  - "@dldc/erreur@7.1.2"
