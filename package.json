@@ -1,6 +1,6 @@
 {
   "name": "@dldc/pubsub",
-  "version": "7.1.0",
+  "version": "7.1.1",
   "description": "A pub/sub library written in TypeScript",
   "license": "MIT",
   "repository": {
